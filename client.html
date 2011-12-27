@@ -1,0 +1,149 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>EHIMS instant messenger</title>
+
+<link rel="stylesheet" type="text/css" href="treeView.css"/>
+<link rel="stylesheet" type="text/css" href="IMClient.css"/>
+
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="funChain.js"></script>
+<script type="text/javascript" src="treeView.js"></script>
+<script type="text/javascript" src="IMClient.js"></script>
+</head>
+<body style="margin:0;height:100%;width:100%;position:absolute;">
+
+<div id="im_main">
+
+<center>
+<div id="connect_view" style="display:none">
+	<div style="padding-bottom:16px;color:maroon">connect to server</div> 
+	<form onsubmit="im.connect(); return false;">
+		Username : <input id="connect_username" type="text" name="username"/>
+		<input type="submit" value="connect"/>
+	</form>
+</div>
+</center>
+
+<center>
+<div id="join_view" style="display:none">
+	<div style="padding:10px;color:maroon">join a channel</div>
+	<form onsubmit="im.join(); return false;">
+		Channel : <input id="join_channel" type="text" name="channelName"/>
+		<input type="submit" value="join"/>
+	</form>
+	<div style="padding:20px">
+		<button onclick="im.disconnect();">disconnect</button>
+	</div>
+</div>
+</center>
+
+
+<div id="channel_view" style="display:none">
+	<div id="status_bar">
+		<span id="status_info"></span>
+
+		<a class="statusBarAction" style="color:red;" href="javascript:im.leave()">Leave</a>
+                <a title="About" class="statusBarAction" style="color:lawngreen;" href="javascript:im.help()">?</a>
+	</div>
+	
+	<div id="channel_view_main">
+		<div id="sidebar" style="position:relative;float:left;width:200px;;border:2px solid white;
+					    overflow:hidden;
+					    height:100%">
+			<div id="clients_display" class="sidebar_box">
+				<div class="sidebar_box_title">People online</div>
+				<div class="sidebar_box_content">
+					<ul id="clients_list"></ul>
+				</div>
+			</div>
+			<div id="msg_queue_view" class="sidebar_box">
+				<div class="sidebar_box_title">Unread messages</div>
+				<div class="sidebar_box_content">
+                                        <span style="display:none">Current: <span id="current_msg"></span></span>
+					<ul id ="message_list"></ul>
+					<button onclick="im.prevMessage()" style="display:none">Previous</button>
+					<button onclick="im.nextMessage()">Next</button>
+				</div>
+			</div>
+		</div>
+		<div id="sidebar_grippy"></div>
+		<div id="msg_display" style="float:left;
+					     position:relative;
+					     width:40%;">
+                    <div id="multiparent_display">
+                       
+                    </div>
+                    <div style="clear:both"></div>
+
+		</div>
+                <div id="msg_view_grippy"></div>
+                <div id="msg_browser" style="float:left;
+					     position:relative;">
+		</div>
+
+	</div>
+	
+	<div id="msg_composer" style="width:100%;position:fixed;bottom:0px;padding:5px;background:white;">
+		<input type="text"  style="font-family:verdana;width:100%;"
+			id="response_text"
+			onkeypress="if (enterKey(event)) {im.send(); return false;}"/>
+	</div>
+
+        <div id="shader" style="position:absolute;left:0;top:0;background-color:black;opacity:0.5;display:none;
+                                width:100%;height:100%;">
+        </div>
+
+        <div id="help" style="position:absolute;top:50px;font-size: 12px;padding:20px;
+                             -webkit-border-radius:10px;
+                             -moz-border-radius:10px;
+                              display:none;width:500px;background:#fff">
+            <h3 style="text-align:center">EHIMS Instant Messaging Client</h3>
+            <ul>
+                <li>To chat, click on a message, type your response, and hit Enter.</li>
+                <li>You can select multiple messages to respond to by holding the Shift key.</li>
+                <li>Messages that are responses to multiple messages are marked with the <img src="icons/multi.gif"></img> icon.</li>
+            </ul>
+            <p style="text-align:center">Developed by <a target="_blank" href="http://cs.mcgill.ca/~jvolkm/">Jonathon Volkmar</a>,
+            supervised by Asst. Prof. Animesh, Desautels Faculty of Management, McGill Universiy</p>
+
+            <p style="text-align:center">Latest changes on April 25th, 2011</p>
+        </div>
+</div>
+
+<div id="loading_msg" style="display:none">
+	<center>Please wait...</center>
+</div>
+
+</div>
+
+<div id="debug_container" style="font-size:8px;position:fixed;bottom:0;right:0;background:#EFEFFF;border:1px solid black">
+Debug: <a href="javascript:toggleDebug()">toggle</a> <a href="javascript:clearDebug()">clear</a>
+<div id="debug" style="max-height:200px;width:500px;overflow:auto;display:none">
+</div>
+</div>
+
+<script type="text/javascript">
+var debugHidden = true;
+function toggleDebug() {
+	if (debugHidden) {
+		$('#debug').show();
+		debugHidden = false;
+	} else {
+		$('#debug').hide();
+		debugHidden = true;
+	}
+}
+function clearDebug() {
+	$('#debug').html('');
+}
+
+var im;
+$(document).ready( function () {
+		im=new IMClient($('#im_main'));
+});
+</script>
+
+</body>
+</html>
