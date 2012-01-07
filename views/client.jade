@@ -1,0 +1,75 @@
+!!!
+html
+  head
+    title EHIMS
+    include includes/header-includes
+  body
+    #im_main
+      center
+        #connect_view(style='display:none')
+          div.join_msg connect to server
+          form(onsubmit='im.connect(); return false;') Username :
+            input(id="connect_username", type="text", name="username")
+            input(type="submit", value="connect")
+      center
+        #join_view(style='display:none')
+          div.join_msg join a channel
+          form(onsubmit='im.join(); return false;') Channel :
+            input(id="join_channel", type="text", name="channelName")
+            input(type='submit', value='join')
+          div(style='padding:20px')
+            button(onclick='im.disconnect();') disconnect
+
+      div#channel_view(style="display:none")
+        #status_bar
+          span#status_info
+          a.statusBarAction(style='color:red;', href='javascript:im.leave()') Leave
+          a.statusBarAction(title='About', style='color:lawngreen;', href='javascript:im.help()') ?
+        #channel_view_main
+          #sidebar
+            #clients_display.sidebar_box
+              .sidebar_box_title Online Now
+              .sidebar_box_content
+                ul#clients_list
+            #msg_queue_view.sidebar_box
+              .sidebar_box_title Unread Messages
+              .sidebar_box_content
+                span(style='display:none;') Current:
+                  span#current_msg
+                ul#message_list
+                button(onclick='im.prevMessage();', style='display:none') Previous
+                button(onclick='im.nextMessage();') Next
+          #sidebar_grippy
+          #msg_display
+            #multiparent_display
+            div.clear_both
+          #msg_view_grippy
+          #msg_browser
+        #msg_composer
+          input#response_text (type='text', onkeypress='if (enterKey(event)) {im.send(); return false;}')
+        #shader
+        #help
+          h3(style='text-align:center') EHIMS Instant Messaging Client
+          ul
+            li To chat, click on a message, type your response, and hit Enter.
+            li You can select multiple messages to respond by holding the Shift key
+            li
+              | Messages that are responses to multiple messages are marked with the
+              img(src='icons/multi.gif')
+              | icon
+          p.about Jonathon Volkmar / Animesh
+          p.about Latest changes on January 6th, 2011
+      #loading_msg(style='display:none')
+        center Please wait...
+
+    #debug_container
+      | Debug:
+      a(href='javascript:toggleDebug();') toggle
+      a(href='javascript:clearDebug();') clear
+      div#debug
+
+
+
+
+
+

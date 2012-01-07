@@ -132,8 +132,10 @@ exports.ChannelStorage = function (channelName, readyFn) {
 		sys.puts('message stored');
 	}
 	
+	// TODO delete
 	var flushJobs = [];
 	
+	// TODO delete
 	var flushMsgBuffer = function (cb) {
 		if (msgBuffer.length == 0) {
 			if ( typeof(cb) == 'function' ) cb();			
@@ -172,6 +174,7 @@ exports.ChannelStorage = function (channelName, readyFn) {
 
 	}
 	
+	// TODO change
 	this.storeMsg = function (clientId, text, msgId, parentIds, timestamp) //flags argument?
 	{
 		//validate message.. for now assume fine
@@ -189,6 +192,7 @@ exports.ChannelStorage = function (channelName, readyFn) {
 		store(msg);
 	}
 	
+	// TODO change
 	this.storeJoin = function (clientId, clientName, timestamp)
 	{
 		msg = { 
@@ -201,6 +205,7 @@ exports.ChannelStorage = function (channelName, readyFn) {
 		store(msg);
 	}
 	
+	// TODO change
 	this.storeLeave = function (clientId, timestamp) {
 		msg = { 
 			type: 'leave',
@@ -212,6 +217,7 @@ exports.ChannelStorage = function (channelName, readyFn) {
 	}
 	
 	
+	// TODO change. close db connection, perhaps
 	this.close = function (cb) {
 		//get entire message history, write it into one file
 		
@@ -231,6 +237,7 @@ exports.ChannelStorage = function (channelName, readyFn) {
 		
 	}	
 	
+	// TODO Change, maybe delete
 	this.readHistory = function (cb) {
 		// callback is cb(msgData), array of all messages
 		if (typeof(cb) == 'undefined') throw Error('you must provide a callback for IMstorage.readHistory()');
@@ -335,6 +342,7 @@ exports.ChannelStorage = function (channelName, readyFn) {
 		
 	}
 	
+	// TODO
 	this.getMsgByID = function(ID) {
 		throw notImplementedError;
 	}
