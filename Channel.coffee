@@ -1,9 +1,12 @@
 storage = require './storage'
 messages = require './messages'
 globals = require './globals'
+{EventEmitter} = require 'events'
 
-class Channel
-  #constructor not to be called: use Channel.create and Channel.load instead
+class Channel extends EventEmitter
+  # events: close
+
+  # constructor not to be called: use Channel.create and Channel.load instead
   constructor: (params) ->
     @name = params.name
     @id = params.id
@@ -14,12 +17,12 @@ class Channel
 
   isReady: -> _ready
   isClosed: -> _closed
-  onReady: (callback, timeoutsec = -1, timeoutfn = undefined) ->
+  onReady: (callback, timeoutsec = -1, timeoutfn = ->) ->
     if _ready then callback
 
     cancel = false
     # set a timer to cancel after timeoutsec seconds
-    if timeoutsec? then setTimeout (-> cancel=true), timeoutsec * 1000
+    if timeoutsec > 0 then setTimeout (-> cancel=true), timeoutsec * 1000
 
     loopUntilReady = ->
       if cancel then timeoutfn()
@@ -27,47 +30,52 @@ class Channel
       else setTimeout loopUntilReady, 50
     loopUntilReady()
 
-  broadcast: (message) ->
+  broadcast: (message, callback = (err, messageId) -> ) ->
     # message is JSON object. assume it is valid
-    # add to each user's message queue. implementation TBD
-    for user in joinedUsers
-      # don't broadcast to the sender of the message
-      if user.id == message.clientId then continue
-      user.messageQueue.enqueue message
 
-    #save to storage
-    storage.storeMessage message
+    # save to storage
+    storage.storeMessage message, @id, (err, messageId) ->
+      message.id = messageId
+      # add to each user's message queue.
+      for user in joinedUsers
+        if user.id == message.clientId then continue
+        console.log "enqueuing #{message.type} message to #{user.name}"
+        user.messageQueue.enqueue message
+      callback err, messageId
 
   addUser: (user) ->
     if (joinedUsers.indexOf user) == -1
       # the user is not already in the channel
-      joinedUser.push user
-      console.log "#{user.username} joined #{@name}"
+      joinedUsers.push user
+      console.log "#{user.name} joined #{@name}"
       user.channel = this
       message = {
-        type: MESSAGE_TYPE_JOIN,
+        type: messages.MESSAGE_TYPE_JOIN,
         clientId: user.id,
         clientName: user.name,
-        globals.timestamp: globals.timestamp()
+        timestamp: globals.timestamp()
       }
       @broadcast message
       return true
     else
       return false
+
   removeUser: (user) ->
     userIndex = joinedUsers.indexOf user
     if userIndex == -1
       # user is not in the channel
       return false
     else
-      message = {
+      message =
         type: messages.MESSAGE_TYPE_LEAVE,
         clientId: user.id,
-        globals.timestamp: globals.timestamp()
-      }
+        timestamp: globals.timestamp()
       @broadcast message
+      joinedUsers.splice userIndex, 1
+      user.channel = null # should this be here?
       return true
-  newMessage: (user, parentIds, text) ->
+
+  newMessage: (user, parentIds, text, callback = (err, messageId) -> ) ->
     # TODO validate user
     # validate parent ids?
     message = {
@@ -75,9 +83,9 @@ class Channel
       clientId: user.id,
       parentIds: parentIds,
       text: text,
-      globals.timestamp: globals.timestamp()
+      timestamp: globals.timestamp()
     }
-    @broadcast message
+    @broadcast message, callback
     return true
 
   close: ->
@@ -86,13 +94,16 @@ class Channel
 
     message = {
       type: messages.MESSAGE_TYPE_CHANNEL_CLOSE,
-      globals.timestamp: globals.timestamp()
+      timestamp: globals.timestamp()
     }
     @broadcast message
 
     #set each user's channel to null
     for user in joinedUsers
       user.channel = null
+
+    @emit 'close',
+      channel: this
 
   getUsers: -> joinedUsers.copy()
 
@@ -112,7 +123,7 @@ class Channel
       if err? then callback err, null
       else if not exists then callback 'Channel not found', null
       else
-        storage.getChannelName name (err, params) ->
+        storage.getChannelParams name, (err, params) ->
           if err? then callback err, null
           else
             channel = new Channel params

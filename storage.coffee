@@ -10,43 +10,44 @@ LOCAL_DB_URL = 'mongodb://localhost/ehims'
 mongoose.connect process.env.MONGOHQ_URL || LOCAL_DB_URL
 models.initModels mongoose
 
-exports.storeMessage = (message, channelId) ->
+exports.storeMessage = (message, channelId, callback = (err, msgId) -> ) ->
   #TODO validate channel?
+
+
 
   model = undefined
   switch message.type
     when messages.MESSAGE_TYPE_JOIN
-      model = new models.Message({
+      model = new models.Message
         type: models.MESSAGE_TYPE_JOIN,
         channelId: channelId,
-        userId: message.userId
-      })
+        userId: message.clientId
+        username: message.clientName
       model.save()
     when messages.MESSAGE_TYPE_LEAVE
-      model = new models.Message({
+      model = new models.Message
         type: models.MESSAGE_TYPE_LEAVE,
         channelId: channelId,
-        userId: message.userId,
-
-      })
+        userId: message.clientId
     when messages.MESSAGE_TYPE_MESSAGE
-      model = new models.Message({
+      model = new models.Message
         type: models.MESSAGE_TYPE_MESSAGE,
         channelId: channelId,
-        userId: message.userId,
-        parentIds: messages.parentIds,
+        userId: message.clientId,
+        #parentIds: (id for id in message.parentIds),
+        parentIds: message.parentIds,
         text: message.text
-      })
     when messages.MESSAGE_TYPE_CHANNEL_CLOSE
-      model = new models.Message({
+      model = new models.Message
         type: models.MESSAGE_TYPE_CHANNEL_CLOSE,
         channelId: channelId
-      })
     else
       return false # TODO raise exception?
 
   #TODO : set date based on message.timestamp?
   model.save()
+  callback null, model._id
+
 
 exports.newUser = (params, callback) ->
   # params is object { string name }
@@ -92,10 +93,9 @@ exports.getChannelParams = (channelName, callback) ->
       if not res?
         callback 'Channel not found', null
       else
-        channelParams = {
+        channelParams =
           name: channelName,
           id: res._id
-        }
         callback null, channelParams
 
 exports.channelExists = (channelName, callback) ->
@@ -125,7 +125,7 @@ exports.userExists = (username, callback) ->
       callback null, foundUser
 
 exports.getUserParams = (username, callback) ->
-  models.User.findOne {name: username}, (err, res) ->
+  models.User.findOne {username: username}, (err, res) ->
     if err?
       callback err, null
     else
@@ -141,18 +141,48 @@ exports.getUserParams = (username, callback) ->
 exports.getChannelName = (channelId) ->
   throw globals.notImplementedError
 
-exports.getAllMessages = (channelId, callback) ->
+typeMapping = []
+typeMapping[models.MESSAGE_TYPE_MESSAGE] = messages.MESSAGE_TYPE_MESSAGE
+typeMapping[models.MESSAGE_TYPE_JOIN] = messages.MESSAGE_TYPE_JOIN
+typeMapping[models.MESSAGE_TYPE_LEAVE] = messages.MESSAGE_TYPE_LEAVE
+typeMapping[models.MESSAGE_TYPE_CHANNEL_CLOSE] = messages.MESSAGE_TYPE_CHANNEL_CLOSE
 
-  models.Messages.find {channelId: channelId}, (err, res) ->
-    if err?
-      callback err, null
-    else
-      messageList = ({
-          type: messages.MESSAGE_TYPE_MESSAGE
-        , text: message.text
-        , parentIds: message.parentIds # does this work?
-        , timestamp: message.date.getTime()
-        , clientId: message.userId
-      } for message in res)
-      callback null, messageList
+exports.getAllMessages = (channelId, callback) ->
+  console.log 'getting messages'
+
+  stream = (models.Message.find {channelId: channelId}).stream()
+
+  messageList = []
+
+  stream.on 'data', (doc) ->
+    messageList.push
+      type: typeMapping[doc.type]
+      text: doc.text
+      parentIds: doc.parentIds
+      timestamp: doc.date.getTime()
+      clientId: doc.userId
+      clientName: doc.username
+      id: doc._id
+
+  stream.on 'close', ->
+    callback null, messageList
+
+  #models.Message.find {channelId: channelId}, (err, res) ->
+
+  #  if err?
+  #    console.log 'failed to get messages'
+  #    callback err, null
+  #  else
+  #    console.log 'got messages'
+  #    messageList = ({
+  #        type: typeMapping[message.type]
+  #      , text: message.text
+  #      , parentIds: message.parentIds # does this work?
+  #      , timestamp: message.date.getTime()
+  #      , clientId: message.userId
+  #      , clientName: message.username
+  #      , id: message._id
+  #    } for message in res)
+  #    delete res # will this help??
+  #    callback null, messageList
 

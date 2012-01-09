@@ -1,29 +1,65 @@
 storage = require './storage'
 Queue = require './Queue'
 globals = require './globals'
+{EventEmitter} = require 'events'
 
-class User
+class User extends EventEmitter
+  # events: disconnect
+
+
   # DONT USE CONSTRUCTOR, use User.create and User.load instead
   # params is JSON object {name, id}
   constructor:(params) ->
     #TODO validate params?
     @id = params.id
     @name = params.name
+    @resetTimeout()
+    @messageQueue = new Queue()
 
   channel: null
   kill: ->
     clearTimeout @timeout
     if @channel? then @channel.removeUser this
     delete @messageQueue
-    delete users[@id]
+    #delete users[@id]
+    @emit 'disconnect',
+      user: this
 
   timeout: null
   resetTimeout: ->
     clearTimeout @timeout
-    @timeout = setTimeout User.timeoutFunction, globals.USER_TIMEOUT_DELAY, [@id]
+    @timeout = setTimeout User.timeoutFunction, globals.USER_TIMEOUT_DELAY, this
 
-  messageQueue: new Queue()
+  # messageQueue: new Queue()
 
+  info: -> {id: @id, name: @name}
+
+  poll: (timeoutMs, callback) ->
+    @resetTimeout()
+    messages = []
+    pollTimer = null
+    setTimeout callback, 2000, null, []
+    return
+
+    pollTerminate = ->
+      clearTimeout pollTimer
+      callback null, messages
+    pollTimeout = setTimeout pollTerminate, timeoutMs
+
+    userQueue = @messageQueue
+
+    pollLoop = ->
+      #TODO check if user hasn't been terminated?
+      if not userQueue.empty
+        clearTimeout pollTimeout
+        #while not userQueue.empty
+        #  messages.push userQueue.dequeue()
+
+        callback null, userQueue.all()
+      else
+        pollTimer = setTimeout pollLoop, globals.SERVER_POLL_INTERVAL
+
+    pollLoop() # begin polling
 
   # Static methods
   @create: (name, callback) ->
@@ -42,14 +78,13 @@ class User
       if err? then callback err, null
       else if not exists then callback 'User not found', null
       else
-        storage.getUserName name (err, params) ->
+        storage.getUserParams name, (err, params) ->
           if err? then callback err, null
           else
             user = new User params
             callback null, user
 
-  @timeoutFunction: (userId) ->
-    user = users[userId]
+  @timeoutFunction: (user) ->
     console.log "#{user.name} timed out."
     user.kill()
 

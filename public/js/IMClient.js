@@ -9,6 +9,7 @@ var DEQUEUE_BLINK_COLOR = "#DDF";
 
 DRAW_FOCUS_CHILDREN = true;
 DRAW_FOCUS_SIBLINGS = true;
+MESSAGE_ID_TYPE = String;
 
 var defaultIMClientParams = {};
 
@@ -322,7 +323,8 @@ var IMClient = function (mainElement, params) {
 				this.getId=function(node) {
 					return node.value.id;
 				}
-			}
+			},
+			IdType: MESSAGE_ID_TYPE
 	});
 
 	var nodeDisplayedListener = function(node) {
@@ -1259,5 +1261,11 @@ function clearDebug() {
 var im;
 $(document).ready( function () {
 		im=new IMClient($('#im_main'));
+		$('#response_text').keypress(function(e){
+		   if (enterKey(e)) {
+		   	im.send();
+			return false;
+		   }
+		 });
 });
 

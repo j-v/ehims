@@ -14,24 +14,20 @@ exports.initModels = (mongoose) ->
   Schema = mongoose.Schema
   ObjectId = Schema.ObjectId
 
-  Message = new Schema {
+  Message = new Schema
     type: {type: Number, min:0, max:3},
     text: String,
     userId: ObjectId,
     parentIds: [ObjectId],
-    channelId: ObjectId,
+    channelId: {type: ObjectId, index: true}
     date: {type: Date, default: Date.now}
-  }
+    username: String
   exports.Message = mongoose.model 'Message', Message
 
-  User = new Schema {
-    username: {type: String, required: true, unique: true},
-  }
+  User = new Schema
+    username: {type: String, required: true, index: {unique: true} },
   exports.User = mongoose.model 'User', User
 
-  Channel = new Schema {
-    name: {type:String, required: true, unique: true}
-  }
+  Channel = new Schema
+    name: {type:String, required: true, index: {unique: true} }
   exports.Channel = mongoose.model 'Channel', Channel
-
-
