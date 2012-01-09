@@ -30,16 +30,14 @@ class User extends EventEmitter
     clearTimeout @timeout
     @timeout = setTimeout User.timeoutFunction, globals.USER_TIMEOUT_DELAY, this
 
-  # messageQueue: new Queue()
-
   info: -> {id: @id, name: @name}
 
   poll: (timeoutMs, callback) ->
     @resetTimeout()
     messages = []
     pollTimer = null
-    setTimeout callback, 2000, null, []
-    return
+    #setTimeout callback, 2000, null, []
+    #return
 
     pollTerminate = ->
       clearTimeout pollTimer

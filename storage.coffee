@@ -2,13 +2,16 @@ mongoose = require 'mongoose'
 models = require './models'
 messages = require './messages'
 globals = require './globals'
-
+{ObjectID, Db, Server} = require 'mongodb'
 
 LOCAL_DB_URL = 'mongodb://localhost/ehims'
 
 # initialize the database
 mongoose.connect process.env.MONGOHQ_URL || LOCAL_DB_URL
 models.initModels mongoose
+
+# initialize mongo-db native driver stuff
+client = new Db 'ehims', new Server('127.0.0.1', 27017, {})
 
 exports.storeMessage = (message, channelId, callback = (err, msgId) -> ) ->
   #TODO validate channel?
@@ -149,23 +152,38 @@ typeMapping[models.MESSAGE_TYPE_CHANNEL_CLOSE] = messages.MESSAGE_TYPE_CHANNEL_C
 
 exports.getAllMessages = (channelId, callback) ->
   console.log 'getting messages'
+  console.log channelId
 
-  stream = (models.Message.find {channelId: channelId}).stream()
+  client.open (err, p_client) ->
+    client.collection 'messages', (err, collection) ->
+      (collection.find {channelId: new ObjectID(String channelId)}).toArray (err, res) ->
+        messageList = ({
+            type: typeMapping[message.type]
+          , text: message.text
+          , parentIds: message.parentIds # does this work?
+          , timestamp: message.date.getTime()
+          , clientId: message.userId
+          , clientName: message.username
+          , id: message._id
+        } for message in res)
+        callback null, messageList
 
-  messageList = []
+  #stream = (models.Message.find {channelId: channelId}).stream()
 
-  stream.on 'data', (doc) ->
-    messageList.push
-      type: typeMapping[doc.type]
-      text: doc.text
-      parentIds: doc.parentIds
-      timestamp: doc.date.getTime()
-      clientId: doc.userId
-      clientName: doc.username
-      id: doc._id
+  #messageList = []
 
-  stream.on 'close', ->
-    callback null, messageList
+  #stream.on 'data', (doc) ->
+  #  messageList.push
+  #    type: typeMapping[doc.type]
+  #    text: doc.text
+  #    parentIds: doc.parentIds
+  #    timestamp: doc.date.getTime()
+  #    clientId: doc.userId
+  #    clientName: doc.username
+  #    id: doc._id
+
+  #stream.on 'close', ->
+  #  callback null, messageList
 
   #models.Message.find {channelId: channelId}, (err, res) ->
 
