@@ -17,7 +17,7 @@ models.initModels mongoose
 if process.env.MONGOHQ_URL
   client = new Db 'app2409409439', new Server 'staff.mongohq.com', 10013, {autoreconnect:true}
 else
-  client = new Db 'ehims', new Server(, 27017, {})
+  client = new Db 'ehims', new Server('127.0.0.1', 27017, {})
 
 exports.storeMessage = (message, channelId, callback = (err, msgId) -> ) ->
   #TODO validate channel?
@@ -158,10 +158,8 @@ typeMapping[models.MESSAGE_TYPE_CHANNEL_CLOSE] = messages.MESSAGE_TYPE_CHANNEL_C
 
 exports.getAllMessages = (channelId, callback) ->
   console.log 'getting messages'
-  console.log channelId
 
   client.open (err, p_client) ->
-
     doQuery = -> client.collection 'messages', (err, collection) ->
       (collection.find {channelId: new ObjectID(String channelId)}).toArray (err, res) ->
         messageList = ({
