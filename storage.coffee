@@ -11,8 +11,8 @@ MONGOHQ_USER = MONGOHQ_PASS = 'heroku'
 
 
 # initialize the database
-mongoose.connect process.env.MONGOHQ_URL || LOCAL_DB_URL
-models.initModels mongoose
+#mongoose.connect process.env.MONGOHQ_URL || LOCAL_DB_URL
+#models.initModels mongoose
 
 # initialize mongo-db native driver stuff
 client = null
