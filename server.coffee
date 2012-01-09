@@ -268,17 +268,23 @@ app.get '/poll', (req, res) ->
       else
         globals.USER_MAX_POLL_TIME
 
-      user.poll timeoutMs, (err, messages) ->
+      console.log "#{user.name} polling"
+      user.setPoller (messages) ->
         console.log "#{user.name} polled"
-        if err?
-          res.send
-            requestId: requestId
-            clientId: userId
-            success: 'n'
-            err: 'Error while polling for new messages: ' + err
-        else
-          res.send
-            requestId: requestId, clientId: user.id, success: 'y', msgs: messages
+        res.send
+          requestId: requestId, clientId: user.id, success: 'y', msgs: messages
+
+      #user.poll timeoutMs, (err, messages) ->
+      #  console.log "#{user.name} polled"
+      #  if err?
+      #    res.send
+      #      requestId: requestId
+      #      clientId: userId
+      #      success: 'n'
+      #      err: 'Error while polling for new messages: ' + err
+      #  else
+      #    res.send
+      #      requestId: requestId, clientId: user.id, success: 'y', msgs: messages
 
 app.post '/send', (req, res) ->
   res.contentType 'application/json'

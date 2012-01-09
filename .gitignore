@@ -5,5 +5,4 @@ Session.vim
 # mac
 .DS_Store
 
-storage/*.json
 node_modules/*

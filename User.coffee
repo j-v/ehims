@@ -15,8 +15,29 @@ class User extends EventEmitter
     @name = params.name
     @resetTimeout()
     @messageQueue = new Queue()
+    self = this #need this?
+    @messageQueue.on 'new', (e) ->
+      queue = e.queue
+      if self._poller?
+        self.resetTimeout()
+        #clearTimeout self.pollTimeout
+        self._poller queue.all()
+        self._poller = null
+    @channel = null
+    # polling stuff
+    @_poller = null      # gets set as a function when client polling, takes messages
+    @pollTimeout = null # gets set when poller object is set
 
-  channel: null
+  setPoller: (poller) ->
+    @resetTimeout()
+    @_poller = poller
+    self = this
+    pollTimeoutFunction = ->
+      self._poller []
+      self._poller = null
+    #@pollTimeout = setTimeout pollTimeoutFunction,
+    #  globals.USER_MAX_POLL_TIME
+
   kill: ->
     clearTimeout @timeout
     if @channel? then @channel.removeUser this
@@ -28,36 +49,36 @@ class User extends EventEmitter
   timeout: null
   resetTimeout: ->
     clearTimeout @timeout
-    @timeout = setTimeout User.timeoutFunction, globals.USER_TIMEOUT_DELAY, this
+    #@timeout = setTimeout User.timeoutFunction, globals.USER_TIMEOUT_DELAY, this
 
   info: -> {id: @id, name: @name}
 
-  poll: (timeoutMs, callback) ->
-    @resetTimeout()
-    messages = []
-    pollTimer = null
-    #setTimeout callback, 2000, null, []
-    #return
+  #poll: (timeoutMs, callback) ->
+  #  @resetTimeout()
+  #  messages = []
+  #  pollTimer = null
+  #  #setTimeout callback, 2000, null, []
+  #  #return
 
-    pollTerminate = ->
-      clearTimeout pollTimer
-      callback null, messages
-    pollTimeout = setTimeout pollTerminate, timeoutMs
+  #  pollTerminate = ->
+  #    clearTimeout pollTimer
+  #    callback null, messages
+  #  pollTimeout = setTimeout pollTerminate, timeoutMs
 
-    userQueue = @messageQueue
+  #  userQueue = @messageQueue
 
-    pollLoop = ->
-      #TODO check if user hasn't been terminated?
-      if not userQueue.empty
-        clearTimeout pollTimeout
-        #while not userQueue.empty
-        #  messages.push userQueue.dequeue()
+  #  pollLoop = ->
+  #    #TODO check if user hasn't been terminated?
+  #    if not userQueue.empty
+  #      clearTimeout pollTimeout
+  #      #while not userQueue.empty
+  #      #  messages.push userQueue.dequeue()
 
-        callback null, userQueue.all()
-      else
-        pollTimer = setTimeout pollLoop, globals.SERVER_POLL_INTERVAL
+  #      callback null, userQueue.all()
+  #    else
+  #      pollTimer = setTimeout pollLoop, globals.SERVER_POLL_INTERVAL
 
-    pollLoop() # begin polling
+  #  pollLoop() # begin polling
 
   # Static methods
   @create: (name, callback) ->
