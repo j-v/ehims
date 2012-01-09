@@ -6,12 +6,18 @@ globals = require './globals'
 
 LOCAL_DB_URL = 'mongodb://localhost/ehims'
 
+MONGOHQ_USER = MONGOHQ_PASS = 'heroku'
+
+
 # initialize the database
 mongoose.connect process.env.MONGOHQ_URL || LOCAL_DB_URL
 models.initModels mongoose
 
 # initialize mongo-db native driver stuff
-client = new Db 'ehims', new Server('127.0.0.1', 27017, {})
+if process.env.MONGOHQ_URL
+  client = new Db 'app2409409439', new Server 'staff.mongohq.com', 10013, {autoreconnect:true}
+else
+  client = new Db 'ehims', new Server(, 27017, {})
 
 exports.storeMessage = (message, channelId, callback = (err, msgId) -> ) ->
   #TODO validate channel?
@@ -155,7 +161,8 @@ exports.getAllMessages = (channelId, callback) ->
   console.log channelId
 
   client.open (err, p_client) ->
-    client.collection 'messages', (err, collection) ->
+
+    doQuery = -> client.collection 'messages', (err, collection) ->
       (collection.find {channelId: new ObjectID(String channelId)}).toArray (err, res) ->
         messageList = ({
             type: typeMapping[message.type]
@@ -167,6 +174,11 @@ exports.getAllMessages = (channelId, callback) ->
           , id: message._id
         } for message in res)
         callback null, messageList
+     if process.env.MONGOHQ_URL
+       client.authenticate MONGOHQ_USER, MONGOHQ_PASS, (err) ->
+         if err then console.log err else doQuery()
+     else
+       doQuery()
 
   #stream = (models.Message.find {channelId: channelId}).stream()
 
