@@ -15,7 +15,7 @@ models.initModels mongoose
 
 # initialize mongo-db native driver stuff
 if process.env.MONGOHQ_URL
-  client = new Db 'app2409409439', new Server 'staff.mongohq.com', 10013, {autoreconnect:true}
+  client = new Db 'app2409439', new Server('staff.mongohq.com', 10013, {autoreconnect:true})
 else
   client = new Db 'ehims', new Server('127.0.0.1', 27017, {})
 
@@ -174,7 +174,7 @@ exports.getAllMessages = (channelId, callback) ->
         callback null, messageList
      if process.env.MONGOHQ_URL
        client.authenticate MONGOHQ_USER, MONGOHQ_PASS, (err) ->
-         if err then console.log err else doQuery()
+         if err? then console.log err else doQuery()
      else
        doQuery()
 
