@@ -14,8 +14,10 @@ mongoose.connect process.env.MONGOHQ_URL || LOCAL_DB_URL
 models.initModels mongoose
 
 # initialize mongo-db native driver stuff
+client = null
 if process.env.MONGOHQ_URL
-  client = new Db 'app2409439', new Server('staff.mongohq.com', 10013, {autoreconnect:true}, {})
+  mongo.connect process.env.MONGOHQ_URL, function (err, db) ->
+    client = db
 else
   client = new Db 'ehims', new Server('127.0.0.1', 27017, {})
 
