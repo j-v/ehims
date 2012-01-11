@@ -7,11 +7,13 @@ globals = require './globals'
 
 LOCAL_DB_URL = 'mongodb://localhost/ehims'
 
+
 MONGOHQ_USER = MONGOHQ_PASS = 'heroku'
 
 
 # initialize the database
 console.log 'connecting to database'
+console.log  process.env.MONGOHQ_URL || LOCAL_DB_URL
 mongoose.connect process.env.MONGOHQ_URL || LOCAL_DB_URL
 console.log 'connected to database'
 models.initModels mongoose
