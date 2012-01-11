@@ -11,16 +11,16 @@ MONGOHQ_USER = MONGOHQ_PASS = 'heroku'
 
 
 # initialize the database
-#mongoose.connect process.env.MONGOHQ_URL || LOCAL_DB_URL
-#models.initModels mongoose
+mongoose.connect process.env.MONGOHQ_URL || LOCAL_DB_URL
+models.initModels mongoose
 
 # initialize mongo-db native driver stuff
-client = null
-if process.env.MONGOHQ_URL
-  mongo.connect process.env.MONGOHQ_URL, (err, db) ->
-    client = db
-else
-  client = new Db 'ehims', new Server('127.0.0.1', 27017, {})
+#client = null
+#if process.env.MONGOHQ_URL
+#  mongo.connect process.env.MONGOHQ_URL, (err, db) ->
+#    client = db
+#else
+#  client = new Db 'ehims', new Server('127.0.0.1', 27017, {})
 
 exports.storeMessage = (message, channelId, callback = (err, msgId) -> ) ->
   #TODO validate channel?
@@ -162,41 +162,35 @@ typeMapping[models.MESSAGE_TYPE_CHANNEL_CLOSE] = messages.MESSAGE_TYPE_CHANNEL_C
 exports.getAllMessages = (channelId, callback) ->
   console.log 'getting messages'
 
-  client.open (err, p_client) ->
-    doQuery = -> client.collection 'messages', (err, collection) ->
-      (collection.find {channelId: new ObjectID(String channelId)}).toArray (err, res) ->
-        messageList = ({
-            type: typeMapping[message.type]
-          , text: message.text
-          , parentIds: message.parentIds # does this work?
-          , timestamp: message.date.getTime()
-          , clientId: message.userId
-          , clientName: message.username
-          , id: message._id
-        } for message in res)
-        callback null, messageList
-     if process.env.MONGOHQ_URL
-       client.authenticate MONGOHQ_USER, MONGOHQ_PASS, (err) ->
-         if err? then console.log err else doQuery()
-     else
-       doQuery()
+  #mongoose.connection.db.collection 'messages', (err, collection) ->
+  #    (collection.find {channelId: new ObjectID(String channelId)}).toArray (err, res) ->
+  #      messageList = ({
+  #          type: typeMapping[message.type]
+  #        , text: message.text
+  #        , parentIds: message.parentIds # does this work?
+  #        , timestamp: message.date.getTime()
+  #        , clientId: message.userId
+  #        , clientName: message.username
+  #        , id: message._id
+  #      } for message in res)
+  #      callback null, messageList
 
-  #stream = (models.Message.find {channelId: channelId}).stream()
+  stream = (models.Message.find {channelId: channelId}).stream()
 
-  #messageList = []
+  messageList = []
 
-  #stream.on 'data', (doc) ->
-  #  messageList.push
-  #    type: typeMapping[doc.type]
-  #    text: doc.text
-  #    parentIds: doc.parentIds
-  #    timestamp: doc.date.getTime()
-  #    clientId: doc.userId
-  #    clientName: doc.username
-  #    id: doc._id
+  stream.on 'data', (doc) ->
+    messageList.push
+      type: typeMapping[doc.type]
+      text: doc.text
+      parentIds: doc.parentIds
+      timestamp: doc.date.getTime()
+      clientId: doc.userId
+      clientName: doc.username
+      id: doc._id
 
-  #stream.on 'close', ->
-  #  callback null, messageList
+  stream.on 'close', ->
+    callback null, messageList
 
   #models.Message.find {channelId: channelId}, (err, res) ->
 
