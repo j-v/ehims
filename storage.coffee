@@ -11,7 +11,9 @@ MONGOHQ_USER = MONGOHQ_PASS = 'heroku'
 
 
 # initialize the database
+console.log 'connecting to database'
 mongoose.connect process.env.MONGOHQ_URL || LOCAL_DB_URL
+console.log 'connected to database'
 models.initModels mongoose
 
 # initialize mongo-db native driver stuff
