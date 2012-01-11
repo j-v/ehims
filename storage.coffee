@@ -2,8 +2,8 @@ mongoose = require 'mongoose'
 models = require './models'
 messages = require './messages'
 globals = require './globals'
-{ObjectID, Db, Server} = require 'mongodb'
-mongo = require 'mongodb'
+#{ObjectID, Db, Server} = require 'mongodb'
+#mongo = require 'mongodb'
 
 LOCAL_DB_URL = 'mongodb://localhost/ehims'
 
