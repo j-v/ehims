@@ -137,6 +137,7 @@ app.post '/join', (req, res) ->
         Channel.load channelName, (err, loadedChannel) ->
           if not err? # channel loaded
             console.log "Channel #{channelName} loaded"
+            channels[channelName] = loadedChannel
             channelReady loadedChannel
           else
             # create it (assuming error means channel doesn't  exist..)
@@ -144,6 +145,7 @@ app.post '/join', (req, res) ->
             Channel.create channelName, (err, newChannel) ->
               if not err? #channel created
                 console.log "Channel #{channelName} created"
+                channels[channelName] = newChannel
                 newChannel.on 'close', (channel) -> delete channels[channel.name]
                 channelReady newChannel
               else
@@ -152,6 +154,11 @@ app.post '/join', (req, res) ->
                   clientId: userId
                   success: 'n'
                   err: 'Unable to join channel, try again'
+      else
+        console.log "Channel #{channelName} in use, joining..."
+        channelReady channel
+
+
 
 app.get '/who', (req, res) ->
   throw globals.notImplementedError

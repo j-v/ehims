@@ -11,14 +11,14 @@ class Channel extends EventEmitter
     @name = params.name
     @id = params.id
 
-  _ready = false
-  _closed = false
-  joinedUsers = []
+    @_ready = false
+    @_closed = false
+    @_joinedUsers = []
 
-  isReady: -> _ready
-  isClosed: -> _closed
+  isReady: -> @_ready
+  isClosed: -> @_closed
   onReady: (callback, timeoutsec = -1, timeoutfn = ->) ->
-    if _ready then callback
+    if @_ready then callback
 
     cancel = false
     # set a timer to cancel after timeoutsec seconds
@@ -26,7 +26,7 @@ class Channel extends EventEmitter
 
     loopUntilReady = ->
       if cancel then timeoutfn()
-      else if _ready callback()
+      else if @_ready callback()
       else setTimeout loopUntilReady, 50
     loopUntilReady()
 
@@ -34,19 +34,19 @@ class Channel extends EventEmitter
     # message is JSON object. assume it is valid
 
     # save to storage
-    storage.storeMessage message, @id, (err, messageId) ->
+    storage.storeMessage message, @id, (err, messageId) =>
       message.id = messageId
       # add to each user's message queue.
-      for user in joinedUsers
+      for user in @_joinedUsers
         if user.id == message.clientId then continue
         console.log "enqueuing #{message.type} message to #{user.name}"
         user.messageQueue.enqueue message
       callback err, messageId
 
   addUser: (user) ->
-    if (joinedUsers.indexOf user) == -1
+    if (@_joinedUsers.indexOf user) == -1
       # the user is not already in the channel
-      joinedUsers.push user
+      @_joinedUsers.push user
       console.log "#{user.name} joined #{@name}"
       user.channel = this
       message = {
@@ -61,7 +61,7 @@ class Channel extends EventEmitter
       return false
 
   removeUser: (user) ->
-    userIndex = joinedUsers.indexOf user
+    userIndex = @_joinedUsers.indexOf user
     if userIndex == -1
       # user is not in the channel
       return false
@@ -71,8 +71,10 @@ class Channel extends EventEmitter
         clientId: user.id,
         timestamp: globals.timestamp()
       @broadcast message
-      joinedUsers.splice userIndex, 1
+      @_joinedUsers.splice userIndex, 1
       user.channel = null # should this be here?
+      if @_joinedUsers.length == 0
+        @close()
       return true
 
   newMessage: (user, parentIds, text, callback = (err, messageId) -> ) ->
@@ -89,7 +91,7 @@ class Channel extends EventEmitter
     return true
 
   close: ->
-    _closed = true
+    @_closed = true
     console.log "Closing channel: #{@name} ..."
 
     message = {
@@ -99,13 +101,13 @@ class Channel extends EventEmitter
     @broadcast message
 
     #set each user's channel to null
-    for user in joinedUsers
+    for user in @_joinedUsers
       user.channel = null
 
     @emit 'close',
       channel: this
 
-  getUsers: -> joinedUsers.copy()
+  getUsers: -> @_joinedUsers.copy()
 
   # Static methods
   @create: (name, callback) ->
