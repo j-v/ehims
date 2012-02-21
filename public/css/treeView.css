@@ -7,13 +7,16 @@ ul.tv_ul {
 	list-style-type:none;
 	padding:1px;
 	margin-left:1em;
-	border-left:1px dotted black;
-	width:1000px;
+	border-left:1px dotted #AAA;
+	/*width:1000px;*/
 }
 
 ul.tv_ul_root {
 	border-left:none;
 	padding-left:0;
+    margin-left: 0;
+    left: -10px;
+    position: relative;
 }
 
 ul.tv_root_ul {
@@ -45,8 +48,8 @@ div.tv_node_hidden {
 	display:none;
 }
 div.tv_node_selected {
-	background-color: #FFE;
-	border: 2px solid #FEC;	
+	background-color: #FFA;
+	border: 2px solid #eeffcc;	
 }
 
 div.tv_node_controls {
@@ -79,6 +82,7 @@ div.tv_control_spacer {
 }
 
 div.tv_connector {
-	float:left;position:relative;top:8px;border-top:1px dotted black;width:15px;
+	float:left;position:relative;top:8px;border-top:1px dotted #AAA;width:15px;
+        display:none;
 }
 

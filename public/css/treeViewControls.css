@@ -20,7 +20,7 @@ div.tv_control_encap {
 }
 
 div.tv_control_out_text {
-        font-size: 9px;
+        font-size: 0.8em;
 	padding-left: 8px;
 }
 div.tv_control_out_text:hover {

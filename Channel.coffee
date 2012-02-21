@@ -118,6 +118,10 @@ class Channel extends EventEmitter
       else
         # channel data has been successfully saved to storage, we create a new Channel object
         channel = new Channel {name:name, id: channelId}
+        # add root "dummy message" to channel
+        dummyUser = {id: null}
+        channel.newMessage dummyUser, [], 'placeholder'
+
         callback null, channel
 
   @load: (name, callback) ->

@@ -33,20 +33,27 @@ html
                 ul#clients_list
             #msg_queue_view.sidebar_box
               .sidebar_box_title Unread Messages
+                button#nextMessage(onclick='im.nextMessage();') Next
               .sidebar_box_content
                 span(style='display:none;') Current:
                   span#current_msg
                 ul#message_list
-                button(onclick='im.prevMessage();', style='display:none') Previous
-                button(onclick='im.nextMessage();') Next
+                //- button(onclick='im.prevMessage();', style='display:none') Previous
+                //- button(onclick='im.nextMessage();') Next
           #sidebar_grippy
-          #msg_display
-            #multiparent_display
-            div.clear_both
+          #msg_display_container
+            #msg_display
+              .section_title Conversation Context
+                a#newConversation(href='#') Start a new conversation
+              #multiparent_display
+              div.clear_both
+            #msg_composer
+              input#response_text(type='text')
           #msg_view_grippy
           #msg_browser
-        #msg_composer
-          input#response_text (type='text')
+            .section_title Conversation Browser
+        //- #msg_composer
+        //-   input#response_text (type='text')
         #shader
         #help
           h3(style='text-align:center') EHIMS Instant Messaging Client

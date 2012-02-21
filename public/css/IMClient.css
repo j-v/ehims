@@ -1,6 +1,44 @@
+#clients_display
+{
+  border-bottom: 1px solid #aaa;
+}
+.tv_node_root
+{
+  display: none;
+}
+.tv_node_controls_root
+{
+  /*display: none;*/
+}
+#newConversation
+{
+  padding: 20px;
+  color: #00C0DD;
+}
+#newConversation:hover
+{
+  color:#00C0FF;
+}
+#newConversation:active
+{
+  color:#FFF;
+}
+#nextMessage
+{
+  margin-left:10px;
+}
+
+input[type="submit"], button
+{
+        background:white;
+        font-family: HelveticaNeue-Light;
+        font-size:0.8em;
+}
+
 body {
-	background: #EFEFFF;
-	font-family: verdana, serif;
+	background: #FFF;
+	/*font-family: verdana, serif;*/
+        font-family: HelveticaNeue-Light, helvetica; 
 	margin:0;
 	height:100%;
 	width:100%;
@@ -14,7 +52,7 @@ body {
 }
 
 #connect_view, #join_view {
-	border: outset 1px;
+	/*border: outset 1px;*/
 	padding: 20px;
 	background: white;
 	color:#00A;
@@ -57,31 +95,39 @@ body {
 	height:100%;
 }
 #status_bar {
-	background:none repeat scroll 0 0 #035;
+	background:none repeat scroll 0 0 #202033;
 	/*border-bottom:1px solid black;
 	border-top:1px solid black;*/
 	color:#00C0FF;
+        padding: 0.5em;
 }
 
 #msg_browser {
-	background: #F4F4FF;
+	background: #FFF;
 	padding-bottom:20px;
 	height:100%;
 
-        border: 1px solid gray;
 	float:left;
 	position:relative;
 
 }
+#msg_display_container
+{
+  position:relative;
+  height:100%;
+  float:left;
+  width:40%;
+}
 #msg_display {
-	background: #F4F4FF;
+	background: #FFF;
 	padding-bottom:20px;
 	height:100%;
 
-        border: 1px solid gray;
+        /*border: 1px solid gray;*/
 	float:left;
 	position:relative;
-	width:40%;
+	/*width:40%;*/
+        width:100%;
 }
 #sidebar_grippy,
 #msg_view_grippy {
@@ -89,11 +135,12 @@ body {
     height:100%;
 
     width: 5px;
-    background: gray;
+    background: white;
+    border: 1px solid #888;
     cursor: move;
 }
 #response_text {
-	border:1px solid #0000AA;
+	/*border:1px solid #000000;*/
         font-size: 1em;
 	font-family: verdana;
 	width:100%;
@@ -109,23 +156,32 @@ body {
     min-height:200px;
     max-height:250px;
     overflow:auto;
+    font-family: verdana;
 }
 #clients_list {
 
 }
 .sidebar_box{
-	background: #F4F4FF;
-	border:1px outset;
+	background: #FFF;
 	width:95%;
 	margin:5px;
+	/*border:1px outset;
         -webkit-border-radius:10px;
-	-moz-border-radius:10px;
+	-moz-border-radius:10px;*/
 }
 .sidebar_box_title {
-	font-weight: bold;
+	font-size: 1.2em;
 }
 .sidebar_box_content {
 
+}
+.section_title
+{
+  text-align: center;
+  padding: 0.5em;
+  background: #505066;
+  position:fixed;
+  top:0;
 }
 
 div.node_unread {
@@ -145,7 +201,6 @@ a.msgbrowser_text {
 
 li.queuedNode {
     cursor:pointer;
-    border-bottom: 1px solid #DEF;
     background: #FFFFFF;
 
 }
@@ -169,8 +224,8 @@ a.statusBarAction:hover {
 #msg_composer {
    width:100%;
    position:fixed;
-   bottom:0px;
-   padding: 5px;
+   bottom:20px;
+   padding: 0;
    background: white;
 }
 

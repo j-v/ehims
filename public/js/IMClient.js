@@ -163,7 +163,7 @@ var IMClient = function (mainElement, params) {
 
         // ------------------ RESIZE GRIPPIES CODE ------------------
         channelView.msggrippy.mousedown(function(e) {
-           var dv = channelView.msgDisplayView;
+           var dv = $(channelView.msgDisplayView.parent());
            var x = dv.position().left;
 
            $(window).mousemove(function(e) {
@@ -172,13 +172,15 @@ var IMClient = function (mainElement, params) {
 
                dv.width(dvwidth);
                channelView.msgBrowserView.width(bvwidth);
+               adjustMessageComposer();
            });
            $(window).mouseup(function(e) {
                $(this).unbind('mousemove');
            });
         });
         channelView.sidegrippy.mousedown(function(e) {
-           var dv = channelView.msgDisplayView;
+           //var dv = channelView.msgDisplayView;
+           var dv = $(channelView.msgDisplayView.parent());
            var sb = channelView.sideBarView;
 
            $(window).mousemove(function(e) {
@@ -188,6 +190,7 @@ var IMClient = function (mainElement, params) {
                sb.width(e.pageX);
 
                dv.width(dv.width() - (e.pageX - oldSbWidth));
+               adjustMessageComposer();
            });
            $(window).mouseup(function(e) {
                $(this).unbind('mousemove');
@@ -237,10 +240,14 @@ var IMClient = function (mainElement, params) {
 		);*/
 	}
 
+        function adjustMessageComposer () {
+          channelView.msgComposerView.width(
+		$(channelView.msgDisplayView.parent()).width()-6);
+        }
 	function resizeChannelView () {
 		var winWidth = $(window).width();
 
-		var viewHeight = $(window).height()-channelView.statusBarView.height()-35;
+		var viewHeight = $(window).height()-channelView.statusBarView.height()-10;
 		if (channelView.msgComposerView.css('display') != 'none')
 			viewHeight -= channelView.msgComposerView.height();
 		/*
@@ -250,7 +257,9 @@ var IMClient = function (mainElement, params) {
 		*/
 		channelView.sideBarView.width(180);
 		channelView.msgBrowserView.width(300);
-		channelView.msgDisplayView.width(winWidth-498);
+		$(channelView.msgDisplayView.parent()).width(winWidth-498);
+                //channelView.msgComposerView.width(winWidth-506);
+                adjustMessageComposer();
 
 		channelView.mainView.height(viewHeight);
 
@@ -769,6 +778,7 @@ var IMClient = function (mainElement, params) {
         msgDispTvSettings.addControl('showall', showallControl);
 
 	this.join = function () {
+                var self = this;
 		var channelname = joinView.find('#join_channel').val();
 		query = {clientId: me.id,
 			requestId: requestIdFactory.getId(),
@@ -865,19 +875,12 @@ var IMClient = function (mainElement, params) {
 								channelView.fadeIn(function() {
 									showMsgComposer();
 									resizeChannelView();
-
-									if (channel.tree.root == null) {
-										//showMsgComposer();
-										$('#response_text').focus();
-									}
-									else
-										hideMsgComposer();
-
-									//resizeChannelView();
 								});
+                                                                self.selectRoot();
 								//DONE
 							 });
 						});
+
 
 					});
 
@@ -1053,6 +1056,10 @@ var IMClient = function (mainElement, params) {
                 });
 
         }
+        this.selectRoot = function() {
+          channelView.msgBrowserView.treeView.rootNodeView.select();
+          $('#response_text').focus();
+        }
 
 	var getHistory = function (cb) {
 		//cb = function(msgs), msgs is null on error
@@ -1126,7 +1133,7 @@ var IMClient = function (mainElement, params) {
 			//apply unread style to nodeViews
 			markNodeAsUnread(newNode);
 			//put in messageQueue if doesn't belong to me
-			if (msg.clientId != me.id) {
+			if (msg.clientId != me.id && newNode.parents.length > 0) {
 				channel.msgQueue.insert(newNode);
 			}
 		}
@@ -1267,5 +1274,8 @@ $(document).ready( function () {
 			return false;
 		   }
 		 });
+                $('#newConversation').click( function(e) {
+                   im.selectRoot(); 
+                });
 });
 

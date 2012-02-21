@@ -42,7 +42,7 @@ var treeView = function (tree, area, settings) {
 		var rootNode = this.tree.root;
 		if (rootNode == null) return;
 
-        this.drawAsRoot(rootNode);
+                this.drawAsRoot(rootNode);
 		
 	}
 
@@ -91,6 +91,8 @@ var treeView = function (tree, area, settings) {
 
 		var ss = this.styleSuffix;
 		var nodeDiv = $('<div class="tv_node'+ss+'" id="'+mappings.id+'"><div>');
+                if (node.parents == null || node.parents.length == 0)
+                  nodeDiv.addClass('tv_node_root');
 
 		
 		var icon = $('<div class="tv_node_icon'+ss+'"></div>');
@@ -99,7 +101,7 @@ var treeView = function (tree, area, settings) {
 		nodeDiv.append('<div class="tv_node_controls_l'+ss+'"></div>');
 		nodeDiv.append('<div class="tv_node_controls_r'+ss+'"></div>');
 
-        var nodeHoverInFn = function () {$(this).children('.tv_node_controls_r'+ss).show();};
+                var nodeHoverInFn = function () {$(this).children('.tv_node_controls_r'+ss).show();};
 		var nodeHoverOutFn = function () {$(this).children('.tv_node_controls_r'+ss).hide();};
 
 		nodeDiv.hover(nodeHoverInFn, nodeHoverOutFn);

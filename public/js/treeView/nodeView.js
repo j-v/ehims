@@ -5,7 +5,7 @@ var nodeView = function (node, treeView) {
 	var self= this;
 	var styleSuffix = treeView.styleSuffix;
     
-    this.state = NODEVIEW_STATE_EXPANDED;
+        this.state = NODEVIEW_STATE_EXPANDED;
 	
 	if (node == undefined) throw Error("Must specify first argument 'node' for nodeView constructor");
 	if (treeView == undefined) throw Error("Must specify second argument 'treeView' for nodeView constructor");
@@ -151,31 +151,31 @@ var nodeView = function (node, treeView) {
 		//events?
 	}
     
-    //rule: collapsed nodeViews children are never 'shown' 
-    //i.e. show and hide are not recursive
-    this.hide = function(recurse) {
-    	    	
-    	if (this.hidden) {return;}  
-    	if (recurse === undefined) recurse = false;
-        this.hidden = true;
-        this.redrawControls();
-        //this.area.parent('li').hide();
-        this.area.parent('li').fadeOut(function(){$(this).css({display:'none'});});
-        if (recurse) {
-        	var children = this.children();
-        	for (var n in children) {
-        		children[n].hide(true);
-        	}
+        //rule: collapsed nodeViews children are never 'shown' 
+        //i.e. show and hide are not recursive
+        this.hide = function(recurse) {
+                    
+            if (this.hidden) {return;}  
+            if (recurse === undefined) recurse = false;
+            this.hidden = true;
+            this.redrawControls();
+            //this.area.parent('li').hide();
+            this.area.parent('li').fadeOut(function(){$(this).css({display:'none'});});
+            if (recurse) {
+                    var children = this.children();
+                    for (var n in children) {
+                            children[n].hide(true);
+                    }
+            }
+            
         }
         
-    }
-    
-    this.show = function() {
-        if (!this.hidden) return;
-        this.hidden = false;        
-        this.redrawControls();
-        this.area.parent('li').fadeIn();
-    }
+        this.show = function() {
+            if (!this.hidden) return;
+            this.hidden = false;        
+            this.redrawControls();
+            this.area.parent('li').fadeIn();
+        }
 	
 	this.collapse = function () {
 		if (this.state == NODEVIEW_STATE_COLLAPSED) return;
@@ -210,6 +210,12 @@ var nodeView = function (node, treeView) {
 		var controlsDivL = $('<div class="tv_node_controls'+ss+' tv_node_controls_l'+ss+'"/>');
 		var controlsDivR = $('<div class="tv_node_controls'+ss+' tv_node_controls_r'+ss+'"/>');
 		var controlsDivOut = $('<div class="tv_node_controls'+ss+' tv_node_controls_out'+ss+'"/>');
+
+                if (self.node.parents.length == 0) {
+                  controlsDivOut.addClass('tv_node_controls_root');
+                  controlsDivL.addClass('tv_node_controls_root');
+                  controlsDivR.addClass('tv_node_controls_root');
+                }
 		
 		var controls = self.treeView.settings.controls;
 		for (var name in controls) {
