@@ -43,7 +43,8 @@ html
           #sidebar_grippy
           #msg_display_container
             #msg_display
-              .section_title Conversation Context
+              .section_title(style="background:none;") 
+                span(style="background:#505066;padding:0.5em;") Message Display
                 a#newConversation(href='#') Start a new conversation
               #multiparent_display
               div.clear_both
@@ -51,7 +52,7 @@ html
               input#response_text(type='text')
           #msg_view_grippy
           #msg_browser
-            .section_title Conversation Browser
+            .section_title Message Browser
         //- #msg_composer
         //-   input#response_text (type='text')
         #shader
@@ -65,7 +66,6 @@ html
               img(src='icons/multi.gif')
               | icon
           p.about Jonathon Volkmar / Animesh
-          p.about Latest changes on January 6th, 2011
       #loading_msg(style='display:none')
         center Please wait...
 

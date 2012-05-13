@@ -13,6 +13,7 @@ ul.tv_ul_md {
 ul.tv_ul_root_md {
 	border-left:none;
 	padding-left:0;
+        margin:0
 }
 
 ul.tv_root_ul_md {

@@ -12,7 +12,7 @@
 }
 #newConversation
 {
-  padding: 20px;
+  padding:0.5em;
   color: #00C0DD;
 }
 #newConversation:hover
@@ -136,7 +136,8 @@ body {
 
     width: 5px;
     background: white;
-    border: 1px solid #888;
+    border-left: 1px solid #888;
+    border-right: 1px solid #888;
     cursor: move;
 }
 #response_text {

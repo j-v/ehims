@@ -18,18 +18,8 @@ mongoose.connect process.env.MONGOHQ_URL || LOCAL_DB_URL
 console.log 'connected to database'
 models.initModels mongoose
 
-# initialize mongo-db native driver stuff
-#client = null
-#if process.env.MONGOHQ_URL
-#  mongo.connect process.env.MONGOHQ_URL, (err, db) ->
-#    client = db
-#else
-#  client = new Db 'ehims', new Server('127.0.0.1', 27017, {})
-
 exports.storeMessage = (message, channelId, callback = (err, msgId) -> ) ->
   #TODO validate channel?
-
-
 
   model = undefined
   switch message.type
@@ -166,19 +156,6 @@ typeMapping[models.MESSAGE_TYPE_CHANNEL_CLOSE] = messages.MESSAGE_TYPE_CHANNEL_C
 exports.getAllMessages = (channelId, callback) ->
   console.log 'getting messages'
 
-  #mongoose.connection.db.collection 'messages', (err, collection) ->
-  #    (collection.find {channelId: new ObjectID(String channelId)}).toArray (err, res) ->
-  #      messageList = ({
-  #          type: typeMapping[message.type]
-  #        , text: message.text
-  #        , parentIds: message.parentIds # does this work?
-  #        , timestamp: message.date.getTime()
-  #        , clientId: message.userId
-  #        , clientName: message.username
-  #        , id: message._id
-  #      } for message in res)
-  #      callback null, messageList
-
   stream = (models.Message.find {channelId: channelId}).stream()
 
   messageList = []
@@ -196,22 +173,4 @@ exports.getAllMessages = (channelId, callback) ->
   stream.on 'close', ->
     callback null, messageList
 
-  #models.Message.find {channelId: channelId}, (err, res) ->
-
-  #  if err?
-  #    console.log 'failed to get messages'
-  #    callback err, null
-  #  else
-  #    console.log 'got messages'
-  #    messageList = ({
-  #        type: typeMapping[message.type]
-  #      , text: message.text
-  #      , parentIds: message.parentIds # does this work?
-  #      , timestamp: message.date.getTime()
-  #      , clientId: message.userId
-  #      , clientName: message.username
-  #      , id: message._id
-  #    } for message in res)
-  #    delete res # will this help??
-  #    callback null, messageList
 

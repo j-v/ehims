@@ -255,10 +255,14 @@ var IMClient = function (mainElement, params) {
 		channelView.msgDisplayView.height(viewHeight);
 		channelView.sideBarView.height(viewHeight);
 		*/
-		channelView.sideBarView.width(180);
-		channelView.msgBrowserView.width(300);
-		$(channelView.msgDisplayView.parent()).width(winWidth-498);
-                //channelView.msgComposerView.width(winWidth-506);
+		//channelView.sideBarView.width(180);
+		//channelView.msgBrowserView.width(300);
+		//$(channelView.msgDisplayView.parent()).width(winWidth-498);
+                var sbWidth = 180;
+                var browserWidth = 400;
+		channelView.sideBarView.width(sbWidth);
+		channelView.msgBrowserView.width(browserWidth);
+		$(channelView.msgDisplayView.parent()).width(winWidth-(sbWidth+browserWidth+18));
                 adjustMessageComposer();
 
 		channelView.mainView.height(viewHeight);
@@ -531,6 +535,7 @@ var IMClient = function (mainElement, params) {
                     }
                 }
                 channelView.msgDisplayView.treeView.area.scrollTop(selnv.area.offset().top-50);
+                channelView.msgDisplayView.treeView.area.scrollLeft(selnv.area.offset().left-50);
 
 		return selnv;
 	}
@@ -904,6 +909,7 @@ var IMClient = function (mainElement, params) {
                     if (nv.treeView==browserTv){
                             nv.multiselect();
                             browserTv.area.scrollTop(nv.area[0].offsetTop-20);
+                            browserTv.area.scrollLeft(nv.area[0].offsetLeft-20);
                     }
             }
             markNodeAsRead(node);
@@ -937,6 +943,7 @@ var IMClient = function (mainElement, params) {
 				if (nv.treeView==browserTv) {
 					nv.multiselect();
 					browserTv.area.scrollTop(nv.area[0].offsetTop-20);
+					browserTv.area.scrollLeft(nv.area[0].offsetLeft-20);
 				}
 			}
 		}
