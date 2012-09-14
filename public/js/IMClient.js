@@ -27,7 +27,8 @@ var IMClient = function (mainElement, params) {
 
 	var NodeQueue = function (queueView, channel) {
 		//var view = channelView.msgQueueView;
-		var view = queueView
+		var view = queueView;
+		var channel = channel;
 		var enabled = false;
 		var pos = 0;
 		var node_arr = [];
@@ -101,7 +102,7 @@ var IMClient = function (mainElement, params) {
 		}
 		function itemHtml(node) {
 			var msg = node.value;
-			var client = getClientById(msg.clientId);
+			var client = channel.getClientById(msg.clientId);
 
 			var clientName;
                         clientName = client == null ?
@@ -776,7 +777,6 @@ var IMClient = function (mainElement, params) {
 					new treeView(channel.tree, channelView.msgBrowserView, msgBrowserTvSettings );
 				channelView.msgDisplayView.treeView =
 						new treeView(channel.tree, channelView.msgDisplayView, msgDispTvSettings );
-
 
 				//var root =  channel.tree.createNode('root'); channel.tree.setRoot(root);
 				channelView.statusBarView.children('#status_info').html('name: <span style="color:white">' + me.name + '</span> channel: <span style="color:white">' + channel.name + '</span>');
