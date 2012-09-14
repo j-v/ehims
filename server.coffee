@@ -419,7 +419,7 @@ app.listen process.env.PORT || globals.LOCAL_PORT
 # Start the REPL to enable interaction from the command line
 # TODO document how to use is
 repl = require 'repl'
-cmd = repl.start()
+cmd = repl.start({})
 cmd.context.channels = channels
 cmd.context.users = users
 

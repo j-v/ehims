@@ -5,11 +5,11 @@ var notImplementedError = Error('not implemented');
 
 var POLL_DELAY = 50; //(ms)
 
-var DEQUEUE_BLINK_COLOR = "#DDF";
+var DEQUEUE_BLINK_COLOR = "#DDF"; // TODO describe this
 
-DRAW_FOCUS_CHILDREN = true;
-DRAW_FOCUS_SIBLINGS = true;
-MESSAGE_ID_TYPE = String;
+DRAW_FOCUS_CHILDREN = true; // Render a node's children in Message Display when the node is selected
+DRAW_FOCUS_SIBLINGS = true; // Render a node's siblings in Message Display when the node is selected
+MESSAGE_ID_TYPE = String;   // Data type of message ID
 
 var defaultIMClientParams = {};
 
@@ -19,14 +19,15 @@ function enterKey(event) { //returns true if enter is pressed
 }
 
 
-
+// IMClient -- main application class. Is instantiated at initialization
 var IMClient = function (mainElement, params) {
 	if (mainElement == null) throw Error("Must specify a jquery object as mainElement (1st arg in IMClient constructor)");
 
         var poll_request = null;
 
-	var nodeQueue = function () {
-		var view = channelView.msgQueueView;
+	var NodeQueue = function (queueView, channel) {
+		//var view = channelView.msgQueueView;
+		var view = queueView
 		var enabled = false;
 		var pos = 0;
 		var node_arr = [];
@@ -77,17 +78,7 @@ var IMClient = function (mainElement, params) {
 				if (pos>0) {
 					retnode = node_arr[pos-1];
 				}
-//				else
-//					var retnode = null;
-//
-//					//retnode = node_arr[pos];
-//					//view.find('ul').prepend('<li>'+retnode.value.id+'</li>');
-//			}
-//			else
-//			{
-//				retnode = null;
-//			}
-			setCurrent(retnode);
+				setCurrent(retnode);
                         }
 			return retnode;
 		}
@@ -120,26 +111,29 @@ var IMClient = function (mainElement, params) {
 			return clientName + ": " + text;
 		}
 
-		//listeners (might implement newnode listener)
+		//listeners 
+		//called when a node is marked as read in the main view
 		this.nodeReadListener = function(node) {
-			//called when a node is marked as read in the main view
-			//look through the node_arr and remove the node
+			
+			//look through the node_arr and remove the node from the queue
 			for (var i=0; i<(node_arr.length-pos); i++) {
 				var currnode=node_arr[pos+i];
 				if (currnode==node) {
-					//$(view.find('ul').children()[i]).css({'text-decoration':'line-through'});
-                                        $(view.find('ul').children()[i]).fadeOut();
+                                        $(view.find('ul').children()[i]).fadeOut(); // Nice fade out effect
 					break;
 				}
 			}
 		}
 	}
 
+	// member variable initialization
+	var me = null; // Users's client ID
+	var channel = null; //set to {name, clients ...} when user joins a channel
+	var pollTimer = null; // TODO document this
 	//set default params
 	for (var i in defaultIMClientParams) {
 		if (params[i] == undefined) params[i] = defaultIMClientParams[i];
 	}
-	//apply params
 
 	// set DOM elements
 	mainElement.addClass('im_main');
@@ -179,13 +173,10 @@ var IMClient = function (mainElement, params) {
            });
         });
         channelView.sidegrippy.mousedown(function(e) {
-           //var dv = channelView.msgDisplayView;
            var dv = $(channelView.msgDisplayView.parent());
            var sb = channelView.sideBarView;
 
            $(window).mousemove(function(e) {
-//               var xpos = dv.position().left;
-//               var offset = sb.width() - xpos;
                oldSbWidth = sb.width();
                sb.width(e.pageX);
 
@@ -221,23 +212,9 @@ var IMClient = function (mainElement, params) {
 
 	function showMsgComposer () {
 		$('#response_text').css({display:''});
-		//resizeChannelView();
-		//$('#response_text').show(function() {resizeChannelView();});
-		/*
-		channelView.msgComposerView.show( function () {
-				resizeChannelView();
-		}
-		);	*/
 	}
 	function hideMsgComposer () {
 		$('#response_text').css({display:'none'});
-		//resizeChannelView();
-		//$('#response_text').hide(function() {resizeChannelView();});
-		/*
-		channelView.msgComposerView.hide( function () {
-				resizeChannelView();
-		}
-		);*/
 	}
 
         function adjustMessageComposer () {
@@ -250,14 +227,6 @@ var IMClient = function (mainElement, params) {
 		var viewHeight = $(window).height()-channelView.statusBarView.height()-10;
 		if (channelView.msgComposerView.css('display') != 'none')
 			viewHeight -= channelView.msgComposerView.height();
-		/*
-		channelView.msgBrowserView.height(viewHeight);
-		channelView.msgDisplayView.height(viewHeight);
-		channelView.sideBarView.height(viewHeight);
-		*/
-		//channelView.sideBarView.width(180);
-		//channelView.msgBrowserView.width(300);
-		//$(channelView.msgDisplayView.parent()).width(winWidth-498);
                 var sbWidth = 180;
                 var browserWidth = 400;
 		channelView.sideBarView.width(sbWidth);
@@ -266,11 +235,10 @@ var IMClient = function (mainElement, params) {
                 adjustMessageComposer();
 
 		channelView.mainView.height(viewHeight);
-
 	}
 	$(window).resize(resizeChannelView);
 
-	//requestIdFactory
+	// requestIdFactory : an object generating a new id for every request made to the server
 	var requestIdFactory = new function () {
 		var nextId = 1;
 		this.getId = function () {
@@ -289,22 +257,19 @@ var IMClient = function (mainElement, params) {
 		nvs = node.nodeViews;
 		for (i=0;i<nvs.length;i++) {
 			markNodeViewUnread(nvs[i]);
-			//nvs[i].area.addClass('node_unread');
 		}
-		//signal to the queue?
 	}
 	var markNodeAsRead = function(node){
 		node.value.read = true;
 		nvs = node.nodeViews;
 		for (i=0;i<nvs.length;i++) {
 			markNodeViewRead(nvs[i]);
-			//nvs[i].area.removeClass('node_unread');
 		}
-		//signal to the queue?
+		//signal to the queue that the node was read
 		channel.msgQueue.nodeReadListener(node);
 	}
 
-	//CONTROLS
+	// CONTROLS
 	this.connect = function () {
 		var username = connectView.find('#connect_username').val();
 		if (username == '') return;
@@ -340,25 +305,29 @@ var IMClient = function (mainElement, params) {
 			IdType: MESSAGE_ID_TYPE
 	});
 
+        //Called when msg is shown in msgDisplay
 	var nodeDisplayedListener = function(node) {
-		//called when msg is shown in msgDisplay
 		var nvs = node.getNodeViewsInTreeView(channelView.msgBrowserView.treeView);
 		$(nvs).each(function(i,nv) {nv.area.addClass('node_displayed');});
 
                 //mark node as read
                 markNodeAsRead(node);
 	}
+	// Called when msg is removed from msgDisplay
 	var nodeUndisplayedListener = function(node) {
-		//called when msg is removed from msgDisplay
 		var nvs = node.getNodeViewsInTreeView(channelView.msgBrowserView.treeView);
-		//will apply recursive to children
+		
 		var nv_found = false;
-		$(nvs).each(function(i,nv) {nv.area.removeClass('node_displayed');nv_found = true;});
+		// Set appropriate CSS class on the node views
+		$(nvs).each(function(i,nv) {nv.area.removeClass('node_displayed');nv_found = true;} );
+		// Apply recursively to children
 		if (nv_found) {
 			var children = node.children;
 			$(children).each(function(i,child) {nodeUndisplayedListener(child);});
 		}
 	}
+
+	// Called when all messges are removed from message display
         var allNodesUndisplayed = function(node) {
             $('.node_displayed').removeClass('node_displayed');
         }
@@ -367,15 +336,14 @@ var IMClient = function (mainElement, params) {
             channelView.multiParentDisplay.empty();
         }
 
+	// WARNING: THIS IS THE MOST COMPLEX FUNCTION
+	// It is essentially a helper function for selectMsgNode
+	// It updates the message display to set focus on the the provided node
 	var focusInMsgDisplay = function (node, multi) {
-		//for every msg displayed in msgDisplay, will apply node_displayed in msgBrowser
+		// note : for every msg displayed in msgDisplay, will apply node_displayed CSS class in msgBrowser
 		if (multi==undefined) multi=false;
-
 		displayTv = channelView.msgDisplayView.treeView;
-
                 var selection = channel.selection;
-
-
                 var mpDisp = channelView.multiParentDisplay;
 
                 if (!multi) {
@@ -384,21 +352,14 @@ var IMClient = function (mainElement, params) {
                     clearMultiParentDisplay();
                     //mark all nodes as undisplayed
                     allNodesUndisplayed();
-
                 } else {
-                    //handle case when node added to selection is less deep than currently least deep
-                    //selected node
-
+                    // Handle case when node added to selection is less deep than currently least deep
+                    // node shown in the message display. 
                     if (!node.hasAncestor(displayTv.rootNodeView.node)) {
 
-                        var selnv = focusInMsgDisplay(node, false);
+                        var selnv = focusInMsgDisplay(node, false); // this redraws the msgDisplay tree with correct root 
                         selnv.multiselect();
                         for (var j=0;j<selection.length;j++) {
-                            //displayTv.selection = [];
-//                            for (var k=0; k<selection.length; k++) {
-//                                displayTv.selection.push(selection[k])
-//                            }
-
                             if (selection[j] != node)
                                 focusInMsgDisplay(selection[j], true).multiselect();
                         }
@@ -408,14 +369,14 @@ var IMClient = function (mainElement, params) {
 
 		var root = node.tree.root;
 
-                //find first ancestor of selected node with least depth which has multiple parents
+                // Find first ancestor of selected node with least depth which has multiple parents (or no parents)
+		// We call this "topNode"
+		// This will be the new root of the MsgDisplay
                 var topNode = null;
                 if (!multi) {
                     var mindepthSelNode = node;
                     for (var i=0;i<selection.length;i++) {
                         selNode = selection[i];
-//                        if (selNode.depth<mindepthSelNode.depth)
-//                            mindepthSelNode = selNode;
                         if (!selNode.hasAncestor(mindepthSelNode))
                             mindepthSelNode = selNode;
                     }
@@ -428,6 +389,7 @@ var IMClient = function (mainElement, params) {
                                 var p = parents[i];
                                 var nvCode = displayTv.nodeViewCode(p);
                                 nvCode.data('node', parents[i]);
+
                                 //function executed when click on 'nodeView' in multi-parent display area
                                 nvCode.click(function(e) {
                                     var node = $(this).data('node');
@@ -447,8 +409,10 @@ var IMClient = function (mainElement, params) {
                         }
                     }
                 }
-
-                function helper(node) { //returns nodeView for this node, draws if necc
+		
+		// This nested function is a helper for focusInMsgDisplay
+		// It recursively draws the parents of the node to be focused
+                function focusInMsgDisplayHelper(node) { // returns nodeView for this node, draws if neccessary
                         if (node.parents == null || node.parents.length == 0) {
                                 if (displayTv.rootNodeView == null)
                                     displayTv.drawRoot();
@@ -468,7 +432,9 @@ var IMClient = function (mainElement, params) {
                                 //all parents are shown:
                                 for (var i=0;i<node.parents.length;i++) {
                                     var parentNode = node.parents[i];
-                                    helper(parentNode); //upwards recursive call
+
+                                    focusInMsgDisplayHelper(parentNode); //upwards recursive call
+
                                     for (var j=0;j<parentNode.nodeViews.length;j++) {
                                         var pnv = parentNode.nodeViews[j];
                                         if (pnv.treeView == displayTv) {
@@ -486,14 +452,6 @@ var IMClient = function (mainElement, params) {
                                                 markNodeAsRead(node);
 
                                             }
-//                                                    if (!multi) {
-//                                                            var siblings = drawnNv.siblings();
-//                                                            for (var k=0; k<siblings.length; k++) {
-//                                                                    nodeUndisplayedListener(siblings[k].node);
-//                                                                    siblings[k].remove();
-//
-//                                                            }
-//                                                    }
                                         }
                                     }
                                 }
@@ -502,11 +460,12 @@ var IMClient = function (mainElement, params) {
                         }
 
                 }
-                var selnv = helper(node);
-                //got the nodeview to focus
+                var selnv = focusInMsgDisplayHelper(node);
+
+
                 if (!multi) {
-                        if (node.parents.length < 2) {
-                            if (DRAW_FOCUS_SIBLINGS) {
+                        if (node.parents.length < 2) { // don't draw sibs/children of multiparent messages
+                            if (DRAW_FOCUS_SIBLINGS) { // draw siblings of the message
                                     var parent = selnv.parent();
                                     if (parent != undefined) {
                                         selnv.remove();
@@ -522,7 +481,7 @@ var IMClient = function (mainElement, params) {
                                         }
                                     }
                             }
-                            if (DRAW_FOCUS_CHILDREN) {
+                            if (DRAW_FOCUS_CHILDREN) { // draw children of the message
                                     selnv.drawChildren();
                                     var children = selnv.children();
                                     for (var i=0;i<children.length;i++) {
@@ -534,21 +493,22 @@ var IMClient = function (mainElement, params) {
                             }
                     }
                 }
+		// Set scroll position of message Display so that the node is in view
                 channelView.msgDisplayView.treeView.area.scrollTop(selnv.area.offset().top-50);
                 channelView.msgDisplayView.treeView.area.scrollLeft(selnv.area.offset().left-50);
 
 		return selnv;
 	}
-	var selectMsgNode = function (node, multi) { //multi: true if adding node to current selection, false by default
-		//var msg = node.value;
+
+	// selectMsgNode: called whenever a message is selected by clicking
+	// Adds the node to the selection and updates the UI
+	// arg multi: true if adding node to current selection, false (default value) if selecting a node by itself
+	var selectMsgNode = function (node, multi) { 
 		if (channel.selection.indexOf(node)!=-1)
 			return;
 		if (multi == undefined) {
-			//multi = channel.selection.length != 0 ? true : false;
-//                        multi = channel.selection.length > 0 ? true : false;
                     multi = false;
 		}
-		//channel.selection.push(node);
 
 		if (multi) {
 			channel.selection.push(node)
@@ -556,7 +516,6 @@ var IMClient = function (mainElement, params) {
 			channel.selection = [node]
 		}
 
-		//if (multi == undefined) multi = false;
 		if (!multi) {
 			//unselect everything in msgdisplay
 			displaySel = channelView.msgDisplayView.treeView.selection;
@@ -583,21 +542,14 @@ var IMClient = function (mainElement, params) {
 
 
 	}
-	function getClientById(id) {
-		var client = channel.clients[id];
-		if (client != undefined) return client;
-		client = channel.offline[id];
-		if (client != undefined) return client;
-		return null;
-	}
 
 	var tvBrowserEventsParams = {
 			select: function (cb,nv) {
-				var node = nv.node;
-                                var multi = nv.treeView.selection.length > 1;
-				selectMsgNode(node, multi);
+					var node = nv.node;
+					var multi = nv.treeView.selection.length > 1;
+					selectMsgNode(node, multi);
 
-				cb();
+					cb();
 			},
 			unselect: function (cb,nv) {
 				var sel = channel.selection, nvs = nv.node.nodeViews;
@@ -687,19 +639,20 @@ var IMClient = function (mainElement, params) {
 			select: function (cb,nv) {
                                 var multi = nv.treeView.selection.length > 1;
 				selectMsgNode(nv.node, multi);
-				//sync display and browser
-				//var sel = channel.selection;
-				var tvsel = channelView.msgBrowserView.treeView.selection;
+
+				// Sync display and browser: unselect any nodes in the browser that
+				// aren't selected in the display
+				var tvsel = channelView.msgBrowserView.treeView.selection; // The Browser's treeView's selection
 				for (var j=0; j< tvsel.length;j++) {
-					var browsersel = channelView.msgDisplayView.treeView.selection;
+					var display_sel = channelView.msgDisplayView.treeView.selection;
 					var doUnselect = true;
-					for (var i=0; i<browsersel.length;i++) {
-						if (browsersel[i].node == tvsel[j].node) {
+					for (var i=0; i<display_sel.length;i++) {
+						if (display_sel[i].node == tvsel[j].node) {
 							doUnselect=false;
 							break;
 						}
 					}
-					if (doUnselect) {tvsel[j].unselect();j--;}
+					if (doUnselect) { tvsel[j].unselect();j--; }
 				}
 				cb();
 			},
@@ -713,7 +666,7 @@ var IMClient = function (mainElement, params) {
 
 				cb();
 			},
-			click: function (cb,nb) {$('#response_text').focus();cb();}
+			click: function (cb,nv) {$('#response_text').focus(); cb();}
 	} ;
 	var tvDispEvents = new treeViewSettingsEvents(tvDispEventsParams);
 	var msgDispTvSettings = new treeViewSettings( {
@@ -785,6 +738,7 @@ var IMClient = function (mainElement, params) {
 	this.join = function () {
                 var self = this;
 		var channelname = joinView.find('#join_channel').val();
+		// make query to send to server
 		query = {clientId: me.id,
 			requestId: requestIdFactory.getId(),
 			channelName: channelname};
@@ -793,106 +747,116 @@ var IMClient = function (mainElement, params) {
 
 		loadingMsg.show();
 
-
-
+		// Send request to server
 		$.post('/join', query, function(data) {
 
-				if (data.success == 'y') {
-					pollStop();
+			if (data.success == 'y') { 	// request was successfully handled
+				
+				pollStop();
+				channel = {
+					   name: data.channelName,
+					   clients : {},
+					   offline : {}, //clients who have participated but who are not currently in the channel
+					   tree : new tree(msgTreeSettings),
+					   selection : [],
+					   msgQueue : new NodeQueue(),
+					   getClientById: 
+						function(id) {
+							var client = this.clients[id];
+							if (client != undefined) return client;
+							client = this.offline[id];
+							if (client != undefined) return client;
+							return null;
+						}
+					};
+				msgQueueView = channelView.msgQueueView;
+				channel.msgQueue = new NodeQueue( msgQueueView, channel ); 
 
-					channel = {name: data.channelName,
-						   clients : {},
-						   offline : {}, //clients who have participated but who are not currently in the channel
-						   tree : new tree(msgTreeSettings),
-						   selection : [],
-						   msgQueue : new nodeQueue()
-						};
-
-					channelView.msgBrowserView.treeView =
-						new treeView(channel.tree, channelView.msgBrowserView, msgBrowserTvSettings );
-					channelView.msgDisplayView.treeView =
-							new treeView(channel.tree, channelView.msgDisplayView, msgDispTvSettings );
+				channelView.msgBrowserView.treeView =
+					new treeView(channel.tree, channelView.msgBrowserView, msgBrowserTvSettings );
+				channelView.msgDisplayView.treeView =
+						new treeView(channel.tree, channelView.msgDisplayView, msgDispTvSettings );
 
 
-					//var root =  channel.tree.createNode('root'); channel.tree.setRoot(root);
-					channelView.statusBarView.children('#status_info').html('name: <span style="color:white">' + me.name + '</span> channel: <span style="color:white">' + channel.name + '</span>');
-					//load history
-					getHistory(function (msgs) {
-						if (msgs==null) {} //some error
-						else {
-							$('#debug').append('<p>reading history</p>');
-							var myLastMsgIndex = 0;
-							//2 passes through messages
-							//1. find which msg user had last seen (to know which to mark as read)
-							//2. build message tree
-							for (var i =0; i< msgs.length; i++) {
-								var msg = msgs[i];
-								if (msg.type == 'leave' && msg.clientId==me.id) {
-									myLastMsgIndex = i;
-								}
+				//var root =  channel.tree.createNode('root'); channel.tree.setRoot(root);
+				channelView.statusBarView.children('#status_info').html('name: <span style="color:white">' + me.name + '</span> channel: <span style="color:white">' + channel.name + '</span>');
+				//load history
+				getHistory(function (msgs) {
+					if (msgs==null) {} //some error
+					else {
+						$('#debug').append('<p>reading history</p>');
+						var myLastMsgIndex = 0;
+						//2 passes through messages
+						//1. find which msg user had last seen (to know which to mark as read)
+						//2. build message tree
+						for (var i =0; i< msgs.length; i++) {
+							var msg = msgs[i];
+							if (msg.type == 'leave' && msg.clientId==me.id) {
+								myLastMsgIndex = i;
 							}
-							for (var i =0; i< myLastMsgIndex; i++) {
-								var msg = msgs[i];
-								//$('#debug').append('<p>retrieved msg: '+JSON.stringify(msgs[i])+'</p>');
-								if (msg.type == 'msg') {
-									messageInsertNode(msg, true ); //not readMessage, which makes it blink
-								} else {
-									readMessage(msgs[i]);
+						}
+						for (var i =0; i< myLastMsgIndex; i++) {
+							var msg = msgs[i];
+							//$('#debug').append('<p>retrieved msg: '+JSON.stringify(msgs[i])+'</p>');
+							if (msg.type == 'msg') {
+								messageInsertNode(msg, true ); //not readMessage, which makes it blink
+							} else {
+								readMessage(msgs[i]);
 
-								}
 							}
-							channel.msgQueue.enable();
-							for (; i< msgs.length; i++) {
-								var msg = msgs[i];
-								//$('#debug').append('<p>retrieved msg: '+JSON.stringify(msgs[i])+'</p>');
-								if (msg.type == 'msg') {
-									messageInsertNode(msg, false ); //not readMessage, which makes it blink
-								} else {
-									readMessage(msgs[i]);
+						}
+						channel.msgQueue.enable();
+						for (; i< msgs.length; i++) {
+							var msg = msgs[i];
+							//$('#debug').append('<p>retrieved msg: '+JSON.stringify(msgs[i])+'</p>');
+							if (msg.type == 'msg') {
+								messageInsertNode(msg, false ); //not readMessage, which makes it blink
+							} else {
+								readMessage(msgs[i]);
 
-								}
 							}
-
-							$('#debug').append('<p>finished reading history</p>');
 						}
 
-						for (c in channel.clients)
-                                                    channel.offline[c] = channel.clients[c]
-						channel.clients = {}; //clients was filled while reading messages in getHistory
+						$('#debug').append('<p>finished reading history</p>');
+					}
 
-						//load clients
-						getClients(function (clients) {
-							if (clients == null) {} //some error
-							else {
-								var chanClients = channel.clients;
-								for (var i = 0; i<clients.length; i++) {
-									var client = clients[i];
-									if (client.id == me.id) continue;
-									chanClients[client.id] = client;
-								}
-								channelView.clientsDisplayView.refresh();
+					for (c in channel.clients)
+					    channel.offline[c] = channel.clients[c]
+					channel.clients = {}; //clients was filled while reading messages in getHistory
+
+					//load clients
+					getClients(function (clients) {
+						if (clients == null) {} //some error
+						else {
+							var chanClients = channel.clients;
+							for (var i = 0; i<clients.length; i++) {
+								var client = clients[i];
+								if (client.id == me.id) continue;
+								chanClients[client.id] = client;
 							}
+							channelView.clientsDisplayView.refresh();
+						}
 
-							loadingMsg.hide( function() {
-								pollStart();
-								channel.msgQueue.enable();
+						loadingMsg.hide( function() {
+							pollStart();
+							channel.msgQueue.enable();
 
-								channelView.fadeIn(function() {
-									showMsgComposer();
-									resizeChannelView();
-								});
-                                                                self.selectRoot();
-								//DONE
-							 });
-						});
-
-
+							channelView.fadeIn(function() {
+								showMsgComposer();
+								resizeChannelView();
+							});
+							self.selectRoot();
+							//DONE
+						 });
 					});
 
 
-				} else {
-		 		 	alert(data.err);
-		 		}
+				});
+
+
+			} else {
+				alert(data.err);
+			}
 		}, 'json');
 		});
 
@@ -1032,7 +996,6 @@ var IMClient = function (mainElement, params) {
 					focusInMsgDisplay(newNode, true);
 					for (var j = 0; j < newNode.nodeViews.length; j++)
 						newNode.nodeViews[j].blink('#ffffd4');
-					//selectMsgNode(newNode, false);
 
 					//unselect the nodes that were responded to
 					browserNodes = channelView.msgBrowserView.treeView.selection;
@@ -1240,18 +1203,9 @@ var IMClient = function (mainElement, params) {
 		clearTimeout(pollTimer);
 	}
 
-	//initialize
-	var me = null;
-	/* set to {
-		name: null,
-		id: null,
-		channelName: null
-	} on connect */
-	var channel = null; //set to {name, clients ...}
-	var pollTimer = null;
-	resizeChannelView();
 
 	//finally...
+	resizeChannelView();
 	connectView.fadeIn(1500);
 	//GO!
 }
