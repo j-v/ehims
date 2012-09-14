@@ -15,14 +15,17 @@ class User extends EventEmitter
     @name = params.name
     @resetTimeout()
     @messageQueue = new Queue()
-    self = this #need this?
-    @messageQueue.on 'new', (e) ->
+
+    # Bind to the message queue's "new" event, triggers new messages to be sent to client
+    self = this
+    @messageQueue.on 'new', (e) -> 
       queue = e.queue
       if self._poller?
         self.resetTimeout()
         #clearTimeout self.pollTimeout
         self._poller queue.all()
         self._poller = null
+
     @channel = null
     # polling stuff
     @_poller = null      # gets set as a function when client polling, takes messages
@@ -35,8 +38,6 @@ class User extends EventEmitter
     pollTimeoutFunction = ->
       self._poller []
       self._poller = null
-    #@pollTimeout = setTimeout pollTimeoutFunction,
-    #  globals.USER_MAX_POLL_TIME
 
   kill: ->
     clearTimeout @timeout
@@ -49,36 +50,9 @@ class User extends EventEmitter
   timeout: null
   resetTimeout: ->
     clearTimeout @timeout
-    #@timeout = setTimeout User.timeoutFunction, globals.USER_TIMEOUT_DELAY, this
 
+  # Get user info to be sent to clients who request user information
   info: -> {id: @id, name: @name}
-
-  #poll: (timeoutMs, callback) ->
-  #  @resetTimeout()
-  #  messages = []
-  #  pollTimer = null
-  #  #setTimeout callback, 2000, null, []
-  #  #return
-
-  #  pollTerminate = ->
-  #    clearTimeout pollTimer
-  #    callback null, messages
-  #  pollTimeout = setTimeout pollTerminate, timeoutMs
-
-  #  userQueue = @messageQueue
-
-  #  pollLoop = ->
-  #    #TODO check if user hasn't been terminated?
-  #    if not userQueue.empty
-  #      clearTimeout pollTimeout
-  #      #while not userQueue.empty
-  #      #  messages.push userQueue.dequeue()
-
-  #      callback null, userQueue.all()
-  #    else
-  #      pollTimer = setTimeout pollLoop, globals.SERVER_POLL_INTERVAL
-
-  #  pollLoop() # begin polling
 
   # Static methods
   @create: (name, callback) ->
@@ -87,7 +61,8 @@ class User extends EventEmitter
       if err?
         callback err, null
       else
-        # channel data has been successfully saved to storage, we create a new Channel object
+        # User data has been successfully saved to storage,
+        # we create a new User object
         user = new User {name:name, id: userId}
         callback null, user
 
@@ -103,6 +78,7 @@ class User extends EventEmitter
             user = new User params
             callback null, user
 
+  # timeoutFunction: called when user hasn't polled for too long, triggers disconnection
   @timeoutFunction: (user) ->
     console.log "#{user.name} timed out."
     user.kill()

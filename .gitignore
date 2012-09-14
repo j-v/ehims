@@ -1,6 +1,7 @@
 # vim
 .*.sw[a-z]
 *.un~
+*~
 Session.vim
 # mac
 .DS_Store

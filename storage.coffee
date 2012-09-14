@@ -10,6 +10,12 @@ LOCAL_DB_URL = 'mongodb://localhost/ehims'
 
 MONGOHQ_USER = MONGOHQ_PASS = 'heroku'
 
+# mapping for message types, from DB format to "message" format
+typeMapping = []
+typeMapping[models.MESSAGE_TYPE_MESSAGE] = messages.MESSAGE_TYPE_MESSAGE
+typeMapping[models.MESSAGE_TYPE_JOIN] = messages.MESSAGE_TYPE_JOIN
+typeMapping[models.MESSAGE_TYPE_LEAVE] = messages.MESSAGE_TYPE_LEAVE
+typeMapping[models.MESSAGE_TYPE_CHANNEL_CLOSE] = messages.MESSAGE_TYPE_CHANNEL_CLOSE
 
 # initialize the database
 console.log 'connecting to database'
@@ -54,10 +60,10 @@ exports.storeMessage = (message, channelId, callback = (err, msgId) -> ) ->
   model.save()
   callback null, model._id
 
-
+# Save new user info to the database
+# Params is a JSON object containing the name
+# callback sends user id as result, or error
 exports.newUser = (params, callback) ->
-  # params is object { string name }
-  # callback sends user id as result, or error
   user = new models.User {username: params.name}
   user.save (err, res) ->
     if err?
@@ -66,6 +72,8 @@ exports.newUser = (params, callback) ->
       id = res._id
       callback null, id
 
+# Retrieve user information from the database
+# callback sends the name and id of the user, or an error
 exports.getUserParams = (username, callback) ->
   models.User.findOne {username: username}, (err, res) ->
     if err?
@@ -81,7 +89,8 @@ exports.getUserParams = (username, callback) ->
         }
         callback null, userParams
 
-
+# Save new channel information to the database
+# callback sends the ID of the newly created channel, or an error
 exports.newChannel = (params, callback) ->
   channel = new models.Channel {name: params.name}
   channel.save (err, res) ->
@@ -91,6 +100,8 @@ exports.newChannel = (params, callback) ->
       id = res._id
       callback null, id
 
+# Retrieve channel information from database
+# callback sends the name and id of the channel or an error
 exports.getChannelParams = (channelName, callback) ->
   models.Channel.findOne {name: channelName}, (err, res) ->
     if err?
@@ -104,6 +115,8 @@ exports.getChannelParams = (channelName, callback) ->
           id: res._id
         callback null, channelParams
 
+# Check if channel of the specified name exists
+# callback sends a boolean or an error
 exports.channelExists = (channelName, callback) ->
   models.Channel.findOne {name: channelName}, (err, res) ->
     if err?
@@ -112,7 +125,8 @@ exports.channelExists = (channelName, callback) ->
       foundChannel = if res? then true else false
       callback null, foundChannel
 
-
+# Retrieve a username corresponding to the given user ID
+# Callback sends the username or an error
 exports.getUserName = (userId, callback) ->
   models.User.findOne {_id: userId}, ['username'], (err, res) ->
     if err then callback err, null
@@ -122,6 +136,8 @@ exports.getUserName = (userId, callback) ->
         username = res.username
         callback null, username
 
+# Check if user with specified name exists
+# callback sends a boolean or an error
 exports.userExists = (username, callback) ->
   models.User.findOne {username: username}, (err, res) ->
     if err?
@@ -130,6 +146,8 @@ exports.userExists = (username, callback) ->
       foundUser = if res? then true else false
       callback null, foundUser
 
+# Get user data from database for user with specified username
+# callback sends name and id of user, or an error
 exports.getUserParams = (username, callback) ->
   models.User.findOne {username: username}, (err, res) ->
     if err?
@@ -147,12 +165,10 @@ exports.getUserParams = (username, callback) ->
 exports.getChannelName = (channelId) ->
   throw globals.notImplementedError
 
-typeMapping = []
-typeMapping[models.MESSAGE_TYPE_MESSAGE] = messages.MESSAGE_TYPE_MESSAGE
-typeMapping[models.MESSAGE_TYPE_JOIN] = messages.MESSAGE_TYPE_JOIN
-typeMapping[models.MESSAGE_TYPE_LEAVE] = messages.MESSAGE_TYPE_LEAVE
-typeMapping[models.MESSAGE_TYPE_CHANNEL_CLOSE] = messages.MESSAGE_TYPE_CHANNEL_CLOSE
 
+# Retrieve all messages from channel with specified id
+# callback sends a list of messages, or error
+# NOTE that messages includes 'join','leave', etc. messages as well as standard messages
 exports.getAllMessages = (channelId, callback) ->
   console.log 'getting messages'
 

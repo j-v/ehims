@@ -6,21 +6,36 @@ Channel = require './Channel'
 User = require './User'
 
 
-users = {}      # stores all online users. keys are user IDs
+users = {}      # stores all online users. Keys are user IDs, values User objects
 channels = {}   # stores all active channels. keys are channel names
 
+###
+Add a user to the server's collection of Users 
+The User will be officially "connected"
+Beware of ambiguity with Channel.addUser TODO
+###
 addUser = (user) -> users[user.id] = user
 
+###
+Remove user from the server's collection of Users
+User will be "disconnected"
+Beware of ambiguity with Channel.removeUser TODO
+###
 removeUser = (user) -> delete users[user.id]
 
-addChannel = (channel) -> channels[channel.id] = channel
+# TODO remove this, it appears to be unused
+#addChannel = (channel) -> channels[channel.id] = channel
 
+# Returns true if a user with specified username is connected
 userConnected = (username) ->
   for id,user of users
     return true if user.name == username
   return false
 
-
+# Loads a user of the specified username from the database
+# If user is already connected, calls back with an error
+# If the user is not found in the database, it is created
+# TODO move to User.coffee ?
 getUser = (name, callback) ->
   # loads user or creates if doesn't exist
   # check name not taken
@@ -39,6 +54,7 @@ getUser = (name, callback) ->
           else
             callback err, null
 
+            
 app = express.createServer()
 
 app.configure ->
@@ -55,49 +71,55 @@ app.configure 'development', ->
 app.configure 'production', ->
   app.use express.express()
 
+# handle request to landing page
 app.get '/', (req, res) ->
   res.render 'client'
     layout: false
 
-
+# handle connect request
 app.post '/connect', (req, res) ->
   res.contentType 'application/json'
 
-
-  name = req.body.name
+  name = req.body.name                  # name of user wishing to connect
   requestId = req.body.requestId
-  if not name? or not requestId?
+  if not name? or not requestId?        # must have both name & request ID
     res.send
       requestId: requestId
       success: 'n'
       err: 'Missing parameter(s)'
   else
-    getUser name, (err, user) ->
 
-      if err? then res.send
+    getUser name, (err, user) ->        # attempt to load or create the user
+
+      if err? then res.send             # send response indicating failure to client
         success: 'n'
         requestId: requestId
         err: err
       else
-        console.log 'got user ' + user.name
+        console.log 'Got user ' + user.name
 
         addUser user
-        user.on 'disconnect', (e) ->
+
+        user.on 'disconnect', (e) ->    # bind to user disconnect event
           console.log "#{e.user.name} disconnected"
           removeUser e.user
 
-        res.send
+        res.send                        # send response to client
           success: 'y'
           requestId:requestId
           clientId: user.id
 
 
+
+# TODO remove this?
 app.get '/channels', (req, res) ->
   throw globals.notImplementedError
 
+# handle request to join channel
 app.post '/join', (req, res) ->
   res.contentType 'application/json'
 
+  # parse request parameters
   channelName = req.body.channelName
   requestId = req.body.requestId
   userId = req.body.clientId
@@ -105,7 +127,7 @@ app.post '/join', (req, res) ->
   if not channelName? or channelName == '' then channelName = globals.DEFAULT_CHANNEL_NAME
 
   if not requestId? or not userId?
-    res.send
+    res.send                    # missing parameters, send failure response
       requestId: requestId
       success: 'n'
       clientId: userId
@@ -114,13 +136,13 @@ app.post '/join', (req, res) ->
     # check user connected
     user = users[userId]
     if not user?
-      res.send
+      res.send                  # user not connected, send failure response
         requestId: requestId
         success: 'n'
         clientId: userId
         err: 'Invalid client ID'
     else
-      # callback for when channel is loaded
+      # callback to send success response, triggered channel is loaded
       channelReady = (channel) ->
         channel.addUser user
         res.send
@@ -129,61 +151,66 @@ app.post '/join', (req, res) ->
           channelName: channel.name
           success: 'y'
 
-      # check channel active
+      # Check if the requested channel is active
       channel = channels[channelName]
-      if not channel?
-        # try to load channel, otherwise create it
+      if not channel?   # Channel is not currently active
+        # Try to load channel, otherwise create it
         console.log "trying to load channel #{channelName}"
         Channel.load channelName, (err, loadedChannel) ->
-          if not err? # channel loaded
+          if not err? # channel loaded successfully
             console.log "Channel #{channelName} loaded"
             channels[channelName] = loadedChannel
             channelReady loadedChannel
           else
             # create it (assuming error means channel doesn't  exist..)
-            console.log "creating channel #{channelName}"
+            console.log "Creating channel #{channelName}"
             Channel.create channelName, (err, newChannel) ->
-              if not err? #channel created
+              if not err? # channel created
                 console.log "Channel #{channelName} created"
                 channels[channelName] = newChannel
-                newChannel.on 'close', (channel) -> delete channels[channel.name]
-                channelReady newChannel
+
+                newChannel.on 'close', (channel) -> # bind to channel close event
+                  delete channels[channel.name]     # remove from active channels
+
+                channelReady newChannel             # trigger callback
               else
-                res.send
+                res.send        # error loading channel, send failure response
                   requestId: requestId
                   clientId: userId
                   success: 'n'
-                  err: 'Unable to join channel, try again'
+                  err: 'Unable to join channel, try again.'
       else
-        console.log "Channel #{channelName} in use, joining..."
-        channelReady channel
+        console.log "Channel #{channelName} active, joining..."
+        channelReady channel    # trigger callback
 
 
 
 app.get '/who', (req, res) ->
   throw globals.notImplementedError
 
+# handle /clients request
 app.get '/clients', (req, res) -> # get active users in a channel
+  # parse request parameters
   requestId = req.query.requestId
   userId = req.query.clientId
   channelName = req.query.channelName
 
   if not requestId? or not userId?
-    res.send
+    res.send    # missing parameters, send failure response
       requestId: requestId
       clientId: userId
       success: 'n'
       err: 'Missing parameter(s)'
   else
-    user = users[userId] # TODO validate user?
+    user = users[userId]        # retrieve User object with specified ID
 
-    # callback for once channel is determined
+    # callback to send response, triggered once the user's channel is determined
     getUsers = (channel) ->
+      # get Array of User info
       channelUsers = (user.info() for user in channel.getUsers())
       res.send
         requestId: requestId, clientId: userId, success: 'y'
         clients: channelUsers
-
 
     if not channelName? and not user.channel?
       res.send
@@ -191,16 +218,17 @@ app.get '/clients', (req, res) -> # get active users in a channel
         err: 'No channel specified, and client is not in a channel'
     else if not channelName?
       # use user's active channel
-      getUsers user.channel
+      getUsers user.channel # trigger callback
     else
       channel = channels[channelName]
       if channel?
-        getUsers channel
+        getUsers channel # trigger callback
       else
         res.send
           requestId: requestId, clientId: user.id, success: 'n'
           err: 'Channel not active'
 
+# handle /history request
 app.get '/history', (req, res) ->
   res.contentType 'application/json'
 
@@ -217,7 +245,7 @@ app.get '/history', (req, res) ->
   else
     user = users[userId] # TODO validate user?
 
-    # callback once we know which channel to get messages from
+    # callback to send response, triggered when have the channel to get messages from
     getMessages = (channel) ->
       console.log "getting messages for channel #{channel.name}"
       storage.getAllMessages channel.id, (err, messageList) ->
@@ -231,6 +259,8 @@ app.get '/history', (req, res) ->
             requestId: requestId, clientId: user.id, success: 'y', msgs: messageList
           for i in [0..messageList.length-1]
             delete messageList[i]
+
+    # get the channel we want to retrive history from
     if not channelName? and not user.channel?
       res.send
         requestId: requestId, clientId: userId, success: 'n',
@@ -241,14 +271,15 @@ app.get '/history', (req, res) ->
       getMessages channel
     else
       channel = channels[channelName]
-      getMessages channel
+      getMessages channel # trigger callback
       if not channel?
         res.send
           requestId: requestId, clientId:clientId, success: 'n',
           err: 'Specified channel does not exist.'
       else
-        getMessages channel
+        getMessages channel # trigger callback
 
+# handle /poll request
 app.get '/poll', (req, res) ->
   res.contentType 'application/json'
 
@@ -276,31 +307,20 @@ app.get '/poll', (req, res) ->
         globals.USER_MAX_POLL_TIME
 
       console.log "#{user.name} polling"
+
+      # Set the user's "poller" callback, which is triggered when new messages come in
       user.setPoller (messages) ->
         console.log "#{user.name} polled"
-        res.send
+        res.send        # send response to client
           requestId: requestId, clientId: user.id, success: 'y', msgs: messages
 
-      #user.poll timeoutMs, (err, messages) ->
-      #  console.log "#{user.name} polled"
-      #  if err?
-      #    res.send
-      #      requestId: requestId
-      #      clientId: userId
-      #      success: 'n'
-      #      err: 'Error while polling for new messages: ' + err
-      #  else
-      #    res.send
-      #      requestId: requestId, clientId: user.id, success: 'y', msgs: messages
-
+# handle /send request
 app.post '/send', (req, res) ->
   res.contentType 'application/json'
 
   requestId = req.body.requestId
   userId = req.body.clientId
   messageText = req.body.text
-  #parentIds = req.body['parentIds[]']
-  #if not typeof parentIds == 'object' then parentIds = [parentIds]
   parentIds = req.body.parentIds
 
   if not requestId? or not userId?
@@ -308,18 +328,21 @@ app.post '/send', (req, res) ->
       requestId: requestId, clientId: userId, success: 'n'
       err: 'Missing parameter(s)'
   else
+    # Check that user is connected
     user = users[userId]
     if not user?
-      res.send
+      res.send # user not connected, send failure response
         requestId: requestId, clientId:userId, success: 'n',
         err: 'Bad client ID'
     else
+      # Check that user has joined a channel
       channel = user.channel
       if not channel?
         res.send
           requestId: requestId, clientId:userId, success: 'n',
-          err: 'No channel found for client'
+          err: 'Client has not joined a channel'
       else
+        # Add the new message to the user's channel
         channel.newMessage user, parentIds, messageText, (err, messageId) ->
           if err?
             res.send
@@ -330,6 +353,7 @@ app.post '/send', (req, res) ->
             res.send
               requestId: requestId, clientId: userId, success: 'y', msgId: messageId
 
+# hande /leave request
 app.post '/leave', (req, res) ->
   res.contentType 'application/json'
 
@@ -341,29 +365,32 @@ app.post '/leave', (req, res) ->
       requestId: requestId, clientId:userId, success: 'n'
       err: 'Missing parameter(s)'
   else
+    # Check user connected
     user = users[userId]
     if not user?
       res.send
         requestId: requestId, clientId: userId, success: 'n'
-        err: 'Bad client ID'
+        err: 'Invalid client ID (user not connected)'
     else
+      # Check user joined a channel
       channel = user.channel
       if not channel?
         res.send
           requestId: requestId, clientId: userId, success: 'n'
-          err: 'No channel found for client'
+          err: "Client hasn't joined a channel"
       else
         if channel.removeUser user
-          res.send
+          res.send # successfully removed user from channel
             requestId: requestId, clientId: userId, success: 'y'
         else
-          res.send
+          res.send # failed to remove user from channel
             requestId: requestId, clientId: userId, success: 'n'
             err: 'Error leaving channel'
 
 app.post '/name', (req, res) ->
   throw globals.notImplementedError
 
+# handle /disconnect request
 app.post '/disconnect', (req, res) ->
   res.contentType 'application/json'
 
@@ -375,19 +402,22 @@ app.post '/disconnect', (req, res) ->
       requestId: requestId, clientId: userId, success: 'n'
       err: 'Missing parameter(s)'
   else
+    # Check user is connected
     user = users[userId]
     if not user?
       res.send
         requestId: requestId, clientId: userId, success: 'n'
-        err: 'Bad client ID'
+        err: 'Invalid client ID (user not connected)'
     else
-      channel = user.channel
       user.kill()
-      res.send
+      res.send # successfully disconnected
         requestId: requestId, clientId: user.id, success: 'y'
 
+# Start the server!
 app.listen process.env.PORT || globals.LOCAL_PORT
 
+# Start the REPL to enable interaction from the command line
+# TODO document how to use is
 repl = require 'repl'
 cmd = repl.start()
 cmd.context.channels = channels

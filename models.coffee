@@ -1,7 +1,3 @@
-# mongoose = require 'mongoose'
-# mongoose connect?
-
-
 exports.MESSAGE_TYPE_MESSAGE = 0
 exports.MESSAGE_TYPE_JOIN = 1
 exports.MESSAGE_TYPE_LEAVE = 2
