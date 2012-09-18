@@ -1,17 +1,66 @@
-//IMClient.js
-// j volkmar 2010
+/*
+ * IMClient.js
+ * Author: Jon Volkmar (2010-2012)
+ * 
+ * Notes about this file:
+ * **********************
+ * This file was created in 2010 and been edited without really any major rewrite until now.
+ * As such, the organization is less than ideal. I was able to refactor the server code
+ * (in fact i rewrote it completely, in CoffeeScript) and intended to do the same for the 
+ * client code, but I was not able to. So this file is dangerously long and at times it's
+ * complexity can be daunting. 
+ * However, I have tried to comment and organize it as best as possible. Most of the file
+ * is devoted to the implementation of the IMClient class. I have divided the class into
+ * sections:
+ * 
+ * [0. Some private member variable and UI layout code]
+ * 1. Public Methods
+ * 		- Methods which are accessible from the client UI such as 'join', 
+ * 		'send', and 'leave'
+ * 2. Main UI Logic
+ * 		- Functions for manipulating, activating, resizing, etc., for the main 
+ * 		UI elements : Message Browser, Message Display, Message Composer, 
+ * 		Mesage Queue...
+ * 3. Message NodeView UI Logic
+ * 		- Functions for modifying the appearance of node views upon certain events,
+ * 		and the custom rendering logic for displaying node views in the message 
+ * 		display
+ * 4. Message NodeView Selection Logic
+ * 		- Logic for adding message nodes to the user's current selection
+ * 5. Parameters for Initializing TreeViews for Message Browser and Message Display
+ * 		- The code to define much of the behavior of the tree views in the
+ * 		message browser and the message display
+ * 6. Requests to Server code
+ * 		- Requests to the server for retrieving message history and getting online 
+ * 		users are done here
+ * 7. Message Handling Logic
+ * 		- When a new message comes in, what the client does in response is defined in
+ * 		this section. E.g. when a new message comes in, a new node will be created,
+ * 		triggering creation of new node views to be displayed in the message browser
+ * 		and the message display
+ * 8. Polling Logic
+ * 		- The logic for when to make requests to the server to check for new messages
+ * 		
+ * 	Each section (except for 0.) is marked with 'BEGIN:' and 'END:' in the comments.
+ * 	
+ * 	Also note that the code for the MessageQueue class is in a seperate file:
+ * 	MessageQueue.js
+ * 	
+ * 	Ideally the code would be further modularized and refactored out to different files, but
+ * 	the initial implementation made the components to closely coupled to make this easily 
+ * 	done during the time constraints. I hope this note helps to understand the code.
+ * 	-----------
+ * 	Jon Volkmar
+ * 	jonathonvolkmar@gmail.com
+ */
 
 var notImplementedError = Error('not implemented');
 
-var POLL_DELAY = 50; //(ms)
-
-var DEQUEUE_BLINK_COLOR = "#DDF"; // TODO describe this
-
-DRAW_FOCUS_CHILDREN = true; // Render a node's children in Message Display when the node is selected
-DRAW_FOCUS_SIBLINGS = true; // Render a node's siblings in Message Display when the node is selected
-MESSAGE_ID_TYPE = String;   // Data type of message ID
-
-var defaultIMClientParams = {};
+var POLL_DELAY = 50; //(ms) Time to wait between completion of last poll, and start of new poll
+var DEQUEUE_BLINK_COLOR = "#DDF"; // Nodes will blink with this color when they are removed from the message queue
+var DRAW_FOCUS_CHILDREN = true; // Render a node's children in Message Display when the node is selected
+var DRAW_FOCUS_SIBLINGS = true; // Render a node's siblings in Message Display when the node is selected
+var MESSAGE_ID_TYPE = String;   // Data type of message ID
 
 function enterKey(event) { 
 	//returns true if enter is pressed
@@ -29,7 +78,7 @@ var IMClient = function (mainElement) {
 	var me = null; // Users's client ID
 	var channel = null; //set to {name, clients ...} when user joins a channel
 
-	// set DOM elements
+	// Set DOM elements corresponding to different parts of the UI
 	mainElement.addClass('im_main');
 	var connectView = mainElement.find('#connect_view');
 	var joinView =  mainElement.find('#join_view');
@@ -398,43 +447,7 @@ var IMClient = function (mainElement) {
 	// ------ END: PUBLIC METHODS ------
 
 
-	// ------------------ RESIZE GRIPPIES CODE ------------------
-	channelView.msggrippy.mousedown(function(e) {
-	   var dv = $(channelView.msgDisplayView.parent());
-	   var x = dv.position().left;
-
-	   $(window).mousemove(function(e) {
-		   dvwidth = e.pageX-x;
-		   bvwidth = channelView.mainView.width() - e.pageX - 24;
-
-	   
-		   dv.width(dvwidth);
-		   channelView.msgBrowserView.width(bvwidth);
-		   adjustMessageComposer();
-	   });
-	   $(window).mouseup(function(e) {
-		   $(this).unbind('mousemove');
-	   });
-	});
-	
-	channelView.sidegrippy.mousedown(function(e) {
-	   var dv = $(channelView.msgDisplayView.parent());
-	   var sb = channelView.sideBarView;
-
-	   $(window).mousemove(function(e) {
-		   oldSbWidth = sb.width();
-		   sb.width(e.pageX);
-
-		   dv.width(dv.width() - (e.pageX - oldSbWidth));
-		   adjustMessageComposer();
-	   });
-	   $(window).mouseup(function(e) {
-		   $(this).unbind('mousemove');
-	   });
-	});
-	// ------------------ END RESIZE GRIPPIES CODE ------------------
-
-	// -------- BEGIN: MAIN UI CODE ---------
+	// -------- BEGIN: MAIN UI LOGIC ---------
 	channelView.clientsDisplayView.refresh = function () {
 		/* Refresh the list of online users */
 
@@ -489,6 +502,55 @@ var IMClient = function (mainElement) {
 	}
 	$(window).resize(resizeChannelView); 
 
+	channelView.msggrippy.mousedown(function(e) {
+		// Behavior of the right hand side "grippy" for resizing message browser
+	   var dv = $(channelView.msgDisplayView.parent());
+	   var x = dv.position().left;
+
+	   $(window).mousemove(function(e) {
+		   dvwidth = e.pageX-x;
+		   bvwidth = channelView.mainView.width() - e.pageX - 24;
+
+	   
+		   dv.width(dvwidth);
+		   channelView.msgBrowserView.width(bvwidth);
+		   adjustMessageComposer();
+	   });
+	   $(window).mouseup(function(e) {
+		   $(this).unbind('mousemove');
+	   });
+	});
+	
+	channelView.sidegrippy.mousedown(function(e) {
+		// "Grippy" behavior for resizing the sidebar
+	   var dv = $(channelView.msgDisplayView.parent());
+	   var sb = channelView.sideBarView;
+
+	   $(window).mousemove(function(e) {
+		   oldSbWidth = sb.width();
+		   sb.width(e.pageX);
+
+		   dv.width(dv.width() - (e.pageX - oldSbWidth));
+		   adjustMessageComposer();
+	   });
+	   $(window).mouseup(function(e) {
+		   $(this).unbind('mousemove');
+	   });
+	});
+	var clearChannelView = function () {
+		// Clear contents of the channel view UI (including message display,
+		// message browser, and message queue)
+		channelView.msgBrowserView.treeView.area.html('');
+		delete channelView.msgBrowserView.treeView;
+		channelView.msgDisplayView.find('ul').remove(); // removes the treeView list element
+		clearMultiParentDisplay();
+		delete channelView.msgDisplayView.treeView;
+		channel.msgQueue.close();
+	}
+	// -------- END: MAIN UI LOGIC ---------
+
+
+	// ------- BEGIN: MESSAGE NODE UI LOGIC --------
 	var markNodeViewUnread = function(nv) {
 		nv.area.addClass('node_unread');
 	}
@@ -515,30 +577,16 @@ var IMClient = function (mainElement) {
 		channel.msgQueue.nodeReadListener(node);
 	}
 
-	var clearChannelView = function () {
-		// Clear contents of the channel view UI (including message display,
-		// message browser, and message queue)
-		channelView.msgBrowserView.treeView.area.html('');
-		delete channelView.msgBrowserView.treeView;
-		channelView.msgDisplayView.find('ul').remove(); // removes the treeView list element
-		clearMultiParentDisplay();
-		delete channelView.msgDisplayView.treeView;
-		channel.msgQueue.close();
-	}
-	// -------- END: MAIN UI CODE ---------
-
-
-	// ------- BEGIN: MESSAGE NODE UI LOGIC --------
-	//Called when msg is shown in msgDisplay
-	var nodeDisplayedListener = function(node) {
+	var nodeDisplayedListener = function(node) { 
+		//Called when msg is shown in msgDisplay
 		var nvs = node.getNodeViewsInTreeView(channelView.msgBrowserView.treeView);
 		$(nvs).each(function(i,nv) {nv.area.addClass('node_displayed');});
 
 		markNodeAsRead(node);
 	}
 
-	// Called when msg disappears from msgDisplay
 	var nodeUndisplayedListener = function(node) {
+		// Called when msg disappears from msgDisplay
 		var nvs = node.getNodeViewsInTreeView(channelView.msgBrowserView.treeView);
 		
 		var nv_found = false;
@@ -726,6 +774,7 @@ var IMClient = function (mainElement) {
 	}
 	// ------- END: MESSAGE NODE UI LOGIC --------
 
+
 	// ------- BEGIN: MESSAGE NODE SELECTION LOGIC --------
 	var selectMsgNode = function (node, multi) { 
 		// selectMsgNode: called whenever a message is selected by clicking
@@ -791,6 +840,7 @@ var IMClient = function (mainElement) {
 		markNodeAsRead(node);
 	}
 	// ------- END: MESSAGE NODE SELECTION LOGIC --------
+
 
 	// ----- BEGIN : PARAMETERS FOR INITIALIZING TREEVIEWS FOR MESSAGE BROWSER AND DISPLAY ----- 
 	var msgTreeSettings = new treeSettings( {
@@ -1009,7 +1059,6 @@ var IMClient = function (mainElement) {
 	// ----- END : PARAMETERS FOR INITIALIZING TREEVIEWS FOR MESSAGE BROWSER AND DISPLAY -----
 
 
-
     // ----- BEGIN: REQUESTS TO SERVER CODE ----
 	var requestIdFactory = new function () {
 		// requestIdFactory : an object generating a new id for every request made to the server
@@ -1055,6 +1104,7 @@ var IMClient = function (mainElement) {
 		});
 	}
     // ----- END: REQUESTS TO SERVER CODE ----
+
 
 	// ----- BEGIN: MESSAGE HANDLING LOGIC -----
 	var messageInsertNode = function(msg, markAsRead) {
@@ -1170,6 +1220,7 @@ var IMClient = function (mainElement) {
 	}
 	// ----- END: MESSAGE HANDLING LOGIC -----
 
+
 	// ------ BEGIN: POLLING LOGIC ------
 	var pollFunction = function () {
 		if (me.id == undefined) throw Error("tried to poll, but user not connected");
@@ -1204,7 +1255,6 @@ var IMClient = function (mainElement) {
 }
 
 
-// formerly in client.html:
 var debugHidden = true;
 function toggleDebug() {
 	if (debugHidden) {
