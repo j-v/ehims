@@ -13,17 +13,18 @@ MESSAGE_ID_TYPE = String;   // Data type of message ID
 
 var defaultIMClientParams = {};
 
-function enterKey(event) { //returns true if enter is pressed
+function enterKey(event) { 
+	//returns true if enter is pressed
 	if (event.keyCode == 13) return true;
         else return false;
 }
 
-// IMClient -- main application class. Is instantiated at initialization
 var IMClient = function (mainElement) {
+	// IMClient -- main application class. Is instantiated at initialization
 	if (mainElement == null) throw Error("Must specify a jquery object as mainElement (1st arg in IMClient constructor)");
 
 	// member variable initialization
-    var poll_request = null; // TODO document this
+    var poll_request = null; // Keeps track of the current poll request to the server
 	var pollTimer = null; // TODO document this
 	var me = null; // Users's client ID
 	var channel = null; //set to {name, clients ...} when user joins a channel
@@ -69,6 +70,177 @@ var IMClient = function (mainElement) {
 		 		 }
 		 }, 'json');
 	}
+	
+	this.nextMessage = function() {
+		// Go to next unread message in the MessageQueue
+		if (channel == null) return;
+
+		var nextMsgNode = channel.msgQueue.next();
+		if (nextMsgNode != null) {
+			setNodeAsSelection(nextMsgNode);
+
+		}
+	}
+
+	this.prevMessage = function() {
+		// This is currently unused due to difficulties in maintaining order of messages within
+		// current behavior
+		
+		if (channel == null) return;
+		var currNode = channel.msgQueue.currNode();
+		if (currNode == null) return;
+
+		//markNodeAsUnread(currNode);
+                //no more marking as unread when going to previous message
+
+		var prevMsgNode = channel.msgQueue.prev();
+		if (prevMsgNode != null) {
+			//select the message in message browser
+			//(start by unselecting all presently selected)
+			browserTv = channelView.msgBrowserView.treeView;
+			browserTv.unselectAll();
+			var nvs = prevMsgNode.nodeViews;
+			for (var i =0; i<nvs.length;i++) {
+				var nv=nvs[i];
+				if (nv.treeView==browserTv) {
+					nv.multiselect();
+					browserTv.area.scrollTop(nv.area[0].offsetTop-20);
+					browserTv.area.scrollLeft(nv.area[0].offsetLeft-20);
+				}
+			}
+		}
+	}
+
+	this.leave = function () {
+		// User has requested to leave the channel
+		if (channel == null) return;
+
+		query = {clientId: me.id,
+			requestId: requestIdFactory.getId()};
+
+		// send request to server
+		$.post('/leave', query, function (data) {
+				if (data.success == 'y') {
+					channelView.fadeOut( function() {
+						//close channel
+						//clear messages
+						clearChannelView();
+						channel = null;
+		 		 	 	joinView.fadeIn();
+		 		 	 	joinView.find('#join_channel').focus();
+		 		 	 });
+				} else {
+					alert(data.err);
+					document.location='/'; //reload page
+				}
+		});
+	}
+
+	this.disconnect = function () {
+		// User has requested to disconnect from chat server
+		if (me == null) return false;
+
+		var query = {requestId: requestIdFactory.getId(),
+			clientId: me.id};
+		$.post('/disconnect', query, function(data) {
+		 		 if (data.success == 'y') {
+		 		 	 me = null;
+
+		 		 	 //stop polling
+		 		 	 pollStop();
+
+		 		 	 //show connect
+		 		 	 joinView.fadeOut( function() {
+		 		 	 	connectView.fadeIn();
+		 		 	 	connectView.find('#connect_username').focus();
+		 		 	 });
+		 		 } else {
+		 		 	alert(data.err);
+		 		 }
+		 }, 'json');
+         
+		return true;
+	}
+
+	this.send = function () {
+		// User wants to send a message
+		
+		// Get message text
+		var msgtext = channelView.msgComposerView.find('#response_text').val();
+		channelView.msgComposerView.find('#response_text').val('');
+
+        //check if the message composer is empty
+		if (msgtext == '') {
+                    this.nextMessage(); // Go to next message
+                    return false;
+        }
+
+		//get parent ids
+		var parentIds = [];
+		for (var i = 0; i<channel.selection.length; i++) {
+			parentIds.push(channel.selection[i].value.id);
+		}
+
+		if (parentIds.length == 0)
+			if (channel.tree.root != null) return false;
+
+		var query = {
+			requestId:requestIdFactory.getId(),
+			clientId:me.id,
+			text:msgtext,
+			'parentIds':parentIds
+		}
+		// Send request to server
+		$.post('/send', query, function (data) {
+				if (data.success == 'y') {
+					// Show the new message in the main interface
+					newNode = messageReceive({
+							id:data.msgId,
+							clientId:me.id,
+							text:msgtext,
+							'parentIds':parentIds,
+							timestamp: (new Date).getTime()
+					});
+					focusInMsgDisplay(newNode, true);
+
+					// Make the new node blink in the main interface
+					for (var j = 0; j < newNode.nodeViews.length; j++)
+						newNode.nodeViews[j].blink('#ffffd4');
+
+					//unselect the nodes that were responded to
+					browserNodes = channelView.msgBrowserView.treeView.selection;
+					for (i=0; i<browserNodes.length;i++) {
+						browserNodes[i].unselect();
+					}
+
+					//select the new node...
+					selectMsgNode(newNode, false);
+				} else {
+					alert(data.err);
+				}
+		}, 'json');
+
+		return true;
+	}
+
+	this.help = function () {
+		// Display the help window
+		$('#shader')
+			.unbind('click')
+			.fadeIn(function(){
+				$('#shader').click(function() {
+					$('#help').hide();
+					$(this).fadeOut()
+				});
+				$('#help').css({'left':window.innerWidth/2-250}).show();
+			});
+	}
+
+	this.selectRoot = function() {
+		  // Shows all top level message
+		  channelView.msgBrowserView.treeView.rootNodeView.select();
+		  $('#response_text').focus();
+	}
 
 	this.join = function () {
         var self = this;
@@ -109,7 +281,7 @@ var IMClient = function (mainElement) {
 					msgQueueView = channelView.msgQueueView;
 					selectMessageInQueueCallback = function(node) { 
 						// show a message in the main view when it is selected in the queue
-						selectMessageNode(node); 
+						setNodeAsSelection(node); 
 					}
 					channel.msgQueue = new MessageQueue( 
 							msgQueueView, 
@@ -223,180 +395,6 @@ var IMClient = function (mainElement) {
 		});
 
 	}
-	
-	this.nextMessage = function() {
-		// Go to next unread message in the MessageQueue
-		if (channel == null) return;
-
-		var nextMsgNode = channel.msgQueue.next();
-		if (nextMsgNode != null) {
-			selectMessageNode(nextMsgNode);
-
-		}
-	}
-
-	this.prevMessage = function() {
-		// This is currently unused due to difficulties in maintaining order of messages within
-		// current behavior
-		
-		if (channel == null) return;
-		var currNode = channel.msgQueue.currNode();
-		if (currNode == null) return;
-
-		//markNodeAsUnread(currNode);
-                //no more marking as unread when going to previous message
-
-		var prevMsgNode = channel.msgQueue.prev();
-		if (prevMsgNode != null) {
-			//select the message in message browser
-			//(start by unselecting all presently selected)
-			browserTv = channelView.msgBrowserView.treeView;
-			browserTv.unselectAll();
-			var nvs = prevMsgNode.nodeViews;
-			for (var i =0; i<nvs.length;i++) {
-				var nv=nvs[i];
-				if (nv.treeView==browserTv) {
-					nv.multiselect();
-					browserTv.area.scrollTop(nv.area[0].offsetTop-20);
-					browserTv.area.scrollLeft(nv.area[0].offsetLeft-20);
-				}
-			}
-		}
-	}
-
-	this.leave = function () {
-		// User has requested to leave the channel
-		if (channel == null) return;
-
-		query = {clientId: me.id,
-			requestId: requestIdFactory.getId()};
-
-		// send request to server
-		$.post('/leave', query, function (data) {
-				if (data.success == 'y') {
-					channelView.fadeOut( function() {
-						//close channel
-						//clear messages
-						clearChannelView();
-						channel = null;
-		 		 	 	joinView.fadeIn();
-		 		 	 	joinView.find('#join_channel').focus();
-		 		 	 });
-				} else {
-					alert(data.err);
-					document.location='/'; //reload page
-				}
-		});
-	}
-
-	this.disconnect = function () {
-		// User has requested to disconnect from chat server
-		if (me == null) return false;
-
-		var query = {requestId: requestIdFactory.getId(),
-			clientId: me.id};
-		$.post('/disconnect', query, function(data) {
-		 		 if (data.success == 'y') {
-		 		 	 me = null;
-
-		 		 	 //stop polling
-		 		 	 pollStop();
-
-		 		 	 //show connect
-		 		 	 joinView.fadeOut( function() {
-		 		 	 	connectView.fadeIn();
-		 		 	 	connectView.find('#connect_username').focus();
-		 		 	 });
-		 		 } else {
-		 		 	alert(data.err);
-		 		 }
-		 }, 'json');
-         
-		return true;
-	}
-
-
-	this.send = function () {
-		// User wants to send a message
-		
-		// Get message text
-		var msgtext = channelView.msgComposerView.find('#response_text').val();
-		channelView.msgComposerView.find('#response_text').val('');
-
-        //check if the message composer is empty
-		if (msgtext == '') {
-                    this.nextMessage(); // Go to next message
-                    return false;
-        }
-
-		//get parent ids
-		var parentIds = [];
-		for (var i = 0; i<channel.selection.length; i++) {
-			parentIds.push(channel.selection[i].value.id);
-		}
-
-		if (parentIds.length == 0)
-			if (channel.tree.root != null) return false;
-
-		var query = {
-			requestId:requestIdFactory.getId(),
-			clientId:me.id,
-			text:msgtext,
-			'parentIds':parentIds
-		}
-		// Send request to server
-		$.post('/send', query, function (data) {
-				if (data.success == 'y') {
-					// Show the new message in the main interface
-					newNode = messageReceive({
-							id:data.msgId,
-							clientId:me.id,
-							text:msgtext,
-							'parentIds':parentIds,
-							timestamp: (new Date).getTime()
-					});
-					focusInMsgDisplay(newNode, true);
-
-					// Make the new node blink in the main interface
-					for (var j = 0; j < newNode.nodeViews.length; j++)
-						newNode.nodeViews[j].blink('#ffffd4');
-
-					//unselect the nodes that were responded to
-					browserNodes = channelView.msgBrowserView.treeView.selection;
-					for (i=0; i<browserNodes.length;i++) {
-						browserNodes[i].unselect();
-					}
-
-					//select the new node...
-					selectMsgNode(newNode, false);
-				} else {
-					alert(data.err);
-				}
-		}, 'json');
-
-		return true;
-	}
-
-
-	this.help = function () {
-		// Display the help window
-		$('#shader')
-			.unbind('click')
-			.fadeIn(function(){
-				$('#shader').click(function() {
-					$('#help').hide();
-					$(this).fadeOut()
-				});
-				$('#help').css({'left':window.innerWidth/2-250}).show();
-			});
-	}
-
-
-	this.selectRoot = function() {
-		  // Shows all top level message
-		  channelView.msgBrowserView.treeView.rootNodeView.select();
-		  $('#response_text').focus();
-	}
 	// ------ END: PUBLIC METHODS ------
 
 
@@ -407,7 +405,7 @@ var IMClient = function (mainElement) {
 
 	   $(window).mousemove(function(e) {
 		   dvwidth = e.pageX-x;
-		   bvwidth = channelView.mainView.width - e.pageX - 24;
+		   bvwidth = channelView.mainView.width() - e.pageX - 24;
 
 	   
 		   dv.width(dvwidth);
@@ -418,6 +416,7 @@ var IMClient = function (mainElement) {
 		   $(this).unbind('mousemove');
 	   });
 	});
+	
 	channelView.sidegrippy.mousedown(function(e) {
 	   var dv = $(channelView.msgDisplayView.parent());
 	   var sb = channelView.sideBarView;
@@ -435,6 +434,7 @@ var IMClient = function (mainElement) {
 	});
 	// ------------------ END RESIZE GRIPPIES CODE ------------------
 
+	// -------- BEGIN: MAIN UI CODE ---------
 	channelView.clientsDisplayView.refresh = function () {
 		/* Refresh the list of online users */
 
@@ -450,7 +450,6 @@ var IMClient = function (mainElement) {
 		}
         return true;
 	}
-
 
 	// Show a highlighted border around the message composer when it is selected
 	$('#response_text').focus( function () {
@@ -490,20 +489,14 @@ var IMClient = function (mainElement) {
 	}
 	$(window).resize(resizeChannelView); 
 
-	// requestIdFactory : an object generating a new id for every request made to the server
-	var requestIdFactory = new function () {
-		var nextId = 1;
-		this.getId = function () {
-			return nextId++;
-		}
-	}
-
 	var markNodeViewUnread = function(nv) {
 		nv.area.addClass('node_unread');
 	}
+
 	var markNodeViewRead = function(nv) {
 		nv.area.removeClass('node_unread');
 	}
+
 	var markNodeAsUnread = function(node){
 		node.value.read = false;
 		nvs = node.nodeViews;
@@ -511,6 +504,7 @@ var IMClient = function (mainElement) {
 			markNodeViewUnread(nvs[i]);
 		}
 	}
+
 	var markNodeAsRead = function(node){
 		node.value.read = true;
 		nvs = node.nodeViews;
@@ -521,17 +515,20 @@ var IMClient = function (mainElement) {
 		channel.msgQueue.nodeReadListener(node);
 	}
 
+	var clearChannelView = function () {
+		// Clear contents of the channel view UI (including message display,
+		// message browser, and message queue)
+		channelView.msgBrowserView.treeView.area.html('');
+		delete channelView.msgBrowserView.treeView;
+		channelView.msgDisplayView.find('ul').remove(); // removes the treeView list element
+		clearMultiParentDisplay();
+		delete channelView.msgDisplayView.treeView;
+		channel.msgQueue.close();
+	}
+	// -------- END: MAIN UI CODE ---------
 
 
-	var msgTreeSettings = new treeSettings( {
-			idFunction: function () {
-				this.getId=function(node) {
-					return node.value.id;
-				}
-			},
-			IdType: MESSAGE_ID_TYPE
-	});
-
+	// ------- BEGIN: MESSAGE NODE UI LOGIC --------
 	//Called when msg is shown in msgDisplay
 	var nodeDisplayedListener = function(node) {
 		var nvs = node.getNodeViewsInTreeView(channelView.msgBrowserView.treeView);
@@ -554,8 +551,9 @@ var IMClient = function (mainElement) {
 		}
 	}
 
-	// Called when all messges are removed from message display
 	var allNodesUndisplayed = function(node) {
+		// Called when all messges are removed from message display
+		// Updates the nodes' css accordingly
 		$('.node_displayed').removeClass('node_displayed');
 	}
 
@@ -563,11 +561,11 @@ var IMClient = function (mainElement) {
 		channelView.multiParentDisplay.empty();
 	}
 
-	// WARNING: THIS IS THE MOST COMPLEX FUNCTION.. and is about 150 lines of code long >-<
-	// It is essentially a helper function for selectMsgNode
-	// It updates the message display to set focus on the the provided node
 	var focusInMsgDisplay = function (node, multi) {
-		// note : for every msg displayed in msgDisplay, will apply node_displayed CSS class in msgBrowser
+		// WARNING: THIS IS THE MOST COMPLEX FUNCTION.. and is about 150 lines of code long >-<
+		// It updates the message display to set focus on the the provided node
+		// note : for every msg displayed in msgDisplay, the 'node_displayed' CSS class 
+		// 		is applied to all corresponding message nodes in the message browser
 		if (multi==undefined) multi=false;
 		displayTv = channelView.msgDisplayView.treeView;
 		var selection = channel.selection;
@@ -726,11 +724,15 @@ var IMClient = function (mainElement) {
 
 		return selnv;
 	}
+	// ------- END: MESSAGE NODE UI LOGIC --------
 
-	// selectMsgNode: called whenever a message is selected by clicking
-	// Adds the node to the selection and updates the UI
-	// arg multi: true if adding node to current selection, false (default value) if selecting a node by itself
+	// ------- BEGIN: MESSAGE NODE SELECTION LOGIC --------
 	var selectMsgNode = function (node, multi) { 
+		// selectMsgNode: called whenever a message is selected by clicking
+		// Adds the node to the selection and updates the UI
+		// args:
+		// node: node to select
+		// multi: true if adding node to current selection, false (default value) if selecting a node by itself
 		if (channel.selection.indexOf(node)!=-1)
 			return;
 		if (multi == undefined) {
@@ -768,9 +770,38 @@ var IMClient = function (mainElement) {
 		$('#response_text').focus();
 	}
 
+	function setNodeAsSelection(node) {
+		// Select a message node to be the user's selection. 
+		// Clarification: This is not called when user clicks a node, only when we want to set the 
+		// user's selection for them
+		browserTv = channelView.msgBrowserView.treeView;
+		browserTv.unselectAll();
+		var nvs = node.nodeViews;
+		for (var i =0; i<nvs.length;i++) {
+				//select the message in message browser
+				//(start by unselecting all presently selected)
+				//TODO : handle multiparent msgs for next and prevMessage
+				var nv=nvs[i];
+				if (nv.treeView==browserTv){
+						nv.multiselect();
+						browserTv.area.scrollTop(nv.area[0].offsetTop-20);
+						browserTv.area.scrollLeft(nv.area[0].offsetLeft-20);
+				}
+		}
+		markNodeAsRead(node);
+	}
+	// ------- END: MESSAGE NODE SELECTION LOGIC --------
 
-	
 	// ----- BEGIN : PARAMETERS FOR INITIALIZING TREEVIEWS FOR MESSAGE BROWSER AND DISPLAY ----- 
+	var msgTreeSettings = new treeSettings( {
+			idFunction: function () {
+				this.getId=function(node) {
+					return node.value.id;
+				}
+			},
+			IdType: MESSAGE_ID_TYPE
+	});
+
 	var tvBrowserEventsParams = { 
 		select: function (cb,nv) { // called when a node is selected in the tree
 				var node = nv.node;
@@ -911,6 +942,7 @@ var IMClient = function (mainElement) {
 			events:tvDispEvents,
 			style:'md'
 	});
+
 	multiparentControl = new nodeViewControl( {
 			 // Icon shown in node view when it represents a message with multiple parents
 			 pos: CONTROL_POS_LEFT,
@@ -970,38 +1002,22 @@ var IMClient = function (mainElement) {
 			 }
 
 	})
+
 	msgDispTvSettings.addControl('multiparent', multiparentControl);
 	msgBrowserTvSettings.addControl('multiparent', multiparentControl);
 	msgDispTvSettings.addControl('showall', showallControl);
 	// ----- END : PARAMETERS FOR INITIALIZING TREEVIEWS FOR MESSAGE BROWSER AND DISPLAY -----
 
 
-	function selectMessageNode(node) {
-		browserTv = channelView.msgBrowserView.treeView;
-		browserTv.unselectAll();
-		var nvs = node.nodeViews;
-		for (var i =0; i<nvs.length;i++) {
-				//select the message in message browser
-				//(start by unselecting all presently selected)
-				//TODO : handle multiparent msgs for next and prevMessage
-				var nv=nvs[i];
-				if (nv.treeView==browserTv){
-						nv.multiselect();
-						browserTv.area.scrollTop(nv.area[0].offsetTop-20);
-						browserTv.area.scrollLeft(nv.area[0].offsetLeft-20);
-				}
+
+    // ----- BEGIN: REQUESTS TO SERVER CODE ----
+	var requestIdFactory = new function () {
+		// requestIdFactory : an object generating a new id for every request made to the server
+		var nextId = 1;
+		this.getId = function () {
+			return nextId++;
 		}
-		markNodeAsRead(node);
 	}
-
-
-
-
-
-
-
-
-
 
 	var getHistory = function (cb) {
 		// Query the server to get entire message history for the current channel
@@ -1038,19 +1054,9 @@ var IMClient = function (mainElement) {
 		 		 }
 		});
 	}
+    // ----- END: REQUESTS TO SERVER CODE ----
 
-
-	var clearChannelView = function () {
-		// Clear contents of the channel view UI (including message display,
-		// message browser, and message queue)
-		channelView.msgBrowserView.treeView.area.html('');
-		delete channelView.msgBrowserView.treeView;
-		channelView.msgDisplayView.find('ul').remove(); // removes the treeView list element
-		clearMultiParentDisplay();
-		delete channelView.msgDisplayView.treeView;
-		channel.msgQueue.close();
-	}
-
+	// ----- BEGIN: MESSAGE HANDLING LOGIC -----
 	var messageInsertNode = function(msg, markAsRead) {
 		// Insert message into the main message tree
 		// arguments:
@@ -1089,21 +1095,23 @@ var IMClient = function (mainElement) {
 		return newNode;
 	}
 
-	// "Events" for when users join or leave the channel
 	var clientJoin = function (client) {
+		// Function called when a client "join" message is received
 		delete channel.offline[client.id];
 		channel.clients[client.id] = client;
 		channelView.clientsDisplayView.refresh();
 	}
+
 	var clientLeave = function(client) {
+		// Function called when a client "leave" message is received
 		channel.offline[client.id] =  channel.clients[client.id];
 		delete channel.clients[client.id];
 		channelView.clientsDisplayView.refresh();
 	}
 
-	// "Event" for when a message (only text messages, not join or leave) is received from the server
 	var messageReceive = function(msg) {
-		//returns the node corresponding to the message
+		// Function called when a text message from a client is received (i.e. not join or leave messages)
+		// Returns a new node corresponding to the message
 		var newNode = messageInsertNode(msg, msg.clientId == me.id ? true : false);
 		for (var j = 0; j < newNode.nodeViews.length; j++)
 			newNode.nodeViews[j].blink('#ffffd4');
@@ -1111,8 +1119,8 @@ var IMClient = function (mainElement) {
 		return newNode;
 	}
 
-
 	var readMessage = function (msg) {
+		// Process a message that was obtained as the result of a poll request 
 		$('#debug').append('<p> got message: '+JSON.stringify(msg)+'</p>');
 
 		switch (msg.type) {
@@ -1144,12 +1152,15 @@ var IMClient = function (mainElement) {
 	}
 
 	var readPoll = function (data) {
+		// Read and process all data obtained from a poll request
+		// A poll request gives us a list of messages, which we
+		// pass each to readMessage() individually
 		if (data.success != 'y') {
 			alert(data.err);
 			return;
 		}
 		if (data.clientId != me.id) {
-			throw Error("client id in poll response is not the same as client's id");
+			throw Error("Client id in poll response is not the same as client's id");
 		}
 
 		var msgs = data.msgs;
@@ -1157,8 +1168,9 @@ var IMClient = function (mainElement) {
 			readMessage(msgs[i]);
 		}
 	}
+	// ----- END: MESSAGE HANDLING LOGIC -----
 
-
+	// ------ BEGIN: POLLING LOGIC ------
 	var pollFunction = function () {
 		if (me.id == undefined) throw Error("tried to poll, but user not connected");
 		var query = {clientId: me.id
@@ -1169,17 +1181,20 @@ var IMClient = function (mainElement) {
 				query ,
 				 function (data) {
 				 	 readPoll(data);
-				 	 pollTimer=setTimeout(pollFunction ,POLL_DELAY);
+					 // Send a poll request to server after POLL_DELAY ms
+				 	 pollTimer=setTimeout(pollFunction ,POLL_DELAY); 
 				 },'json');
 	}
 
 	var pollStart = function () {
 		pollFunction();
 	}
+
 	var pollStop = function () {
 		if (poll_request != null) poll_request.abort();
 		clearTimeout(pollTimer);
 	}
+	// ------ END: POLLING LOGIC ------
 
 
 	//finally...
