@@ -407,7 +407,7 @@ var IMClient = function (mainElement) {
 
 	   $(window).mousemove(function(e) {
 		   dvwidth = e.pageX-x;
-		   bvwidth = channelView.mainVie) - e.pageX - 24;
+		   bvwidth = channelView.mainView.width - e.pageX - 24;
 
 	   
 		   dv.width(dvwidth);
