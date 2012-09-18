@@ -23,7 +23,7 @@ var IMClient = function (mainElement) {
 	if (mainElement == null) throw Error("Must specify a jquery object as mainElement (1st arg in IMClient constructor)");
 
 	// member variable initialization
-        var poll_request = null; // TODO document this
+    var poll_request = null; // TODO document this
 	var pollTimer = null; // TODO document this
 	var me = null; // Users's client ID
 	var channel = null; //set to {name, clients ...} when user joins a channel
@@ -40,49 +40,52 @@ var IMClient = function (mainElement) {
 	channelView.msgDisplayView = channelView.find('#msg_display');
 	channelView.sideBarView = channelView.find('#sidebar');
 	channelView.msgQueueView = channelView.find('#msg_queue_view');
-        channelView.multiParentDisplay = channelView.find('#multiparent_display');
-        channelView.msggrippy = channelView.find('#msg_view_grippy');
-        channelView.sidegrippy = channelView.find('#sidebar_grippy');
+	channelView.multiParentDisplay = channelView.find('#multiparent_display');
+	channelView.msggrippy = channelView.find('#msg_view_grippy');
+	channelView.sidegrippy = channelView.find('#sidebar_grippy');
 	var loadingMsg = mainElement.find('#loading_msg');
 	hideMsgComposer();
 	channelView.clientsDisplayView = channelView.find('#clients_display');
 
 
-        // ------------------ RESIZE GRIPPIES CODE ------------------
-        channelView.msggrippy.mousedown(function(e) {
-           var dv = $(channelView.msgDisplayView.parent());
-           var x = dv.position().left;
+	// ------------------ RESIZE GRIPPIES CODE ------------------
+	channelView.msggrippy.mousedown(function(e) {
+	   var dv = $(channelView.msgDisplayView.parent());
+	   var x = dv.position().left;
 
-           $(window).mousemove(function(e) {
-               dvwidth = e.pageX-x;
-               bvwidth = channelView.mainView.width() - e.pageX - 24;
+	   $(window).mousemove(function(e) {
+		   dvwidth = e.pageX-x;
+		   bvwidth = channelView.mainVie) - e.pageX - 24;
 
-               dv.width(dvwidth);
-               channelView.msgBrowserView.width(bvwidth);
-               adjustMessageComposer();
-           });
-           $(window).mouseup(function(e) {
-               $(this).unbind('mousemove');
-           });
-        });
-        channelView.sidegrippy.mousedown(function(e) {
-           var dv = $(channelView.msgDisplayView.parent());
-           var sb = channelView.sideBarView;
+	   
+		   dv.width(dvwidth);
+		   channelView.msgBrowserView.width(bvwidth);
+		   adjustMessageComposer();
+	   });
+	   $(window).mouseup(function(e) {
+		   $(this).unbind('mousemove');
+	   });
+	});
+	channelView.sidegrippy.mousedown(function(e) {
+	   var dv = $(channelView.msgDisplayView.parent());
+	   var sb = channelView.sideBarView;
 
-           $(window).mousemove(function(e) {
-               oldSbWidth = sb.width();
-               sb.width(e.pageX);
+	   $(window).mousemove(function(e) {
+		   oldSbWidth = sb.width();
+		   sb.width(e.pageX);
 
-               dv.width(dv.width() - (e.pageX - oldSbWidth));
-               adjustMessageComposer();
-           });
-           $(window).mouseup(function(e) {
-               $(this).unbind('mousemove');
-           });
-        });
-        // ------------------ END RESIZE GRIPPIES CODE ------------------
+		   dv.width(dv.width() - (e.pageX - oldSbWidth));
+		   adjustMessageComposer();
+	   });
+	   $(window).mouseup(function(e) {
+		   $(this).unbind('mousemove');
+	   });
+	});
+	// ------------------ END RESIZE GRIPPIES CODE ------------------
 
 	channelView.clientsDisplayView.refresh = function () {
+		/* Refresh the list of online users */
+
 		if (channel == null) return false;
 		var clients = channel.clients;
 		if (clients == null) return false;
@@ -93,10 +96,11 @@ var IMClient = function (mainElement) {
 			var client = clients[i];
 			list.append('<li>'+client.name+'</li>');
 		}
-                return true;
+        return true;
 	}
 
 
+	// Show a highlighted border around the message composer when it is selected
 	$('#response_text').focus( function () {
 	    $(this).css({'border':'3px solid #00C0FF'});
 	}).blur( function () {
@@ -110,26 +114,29 @@ var IMClient = function (mainElement) {
 		$('#response_text').css({display:'none'});
 	}
 
-        function adjustMessageComposer () {
+	function adjustMessageComposer () {
+		// adjust size of message composer to fit inside message display pane
           channelView.msgComposerView.width(
 		$(channelView.msgDisplayView.parent()).width()-6);
-        }
+	}
+
+	// Resize all the window elements each time the window is resized
 	function resizeChannelView () {
 		var winWidth = $(window).width();
 
 		var viewHeight = $(window).height()-channelView.statusBarView.height()-10;
 		if (channelView.msgComposerView.css('display') != 'none')
 			viewHeight -= channelView.msgComposerView.height();
-                var sbWidth = 180;
-                var browserWidth = 400;
+		var sbWidth = 180;
+		var browserWidth = 400;
 		channelView.sideBarView.width(sbWidth);
 		channelView.msgBrowserView.width(browserWidth);
 		$(channelView.msgDisplayView.parent()).width(winWidth-(sbWidth+browserWidth+18));
-                adjustMessageComposer();
+		adjustMessageComposer();
 
 		channelView.mainView.height(viewHeight);
 	}
-	$(window).resize(resizeChannelView);
+	$(window).resize(resizeChannelView); 
 
 	// requestIdFactory : an object generating a new id for every request made to the server
 	var requestIdFactory = new function () {
@@ -173,10 +180,7 @@ var IMClient = function (mainElement) {
 		 		 if (data.success == 'y') {
 		 		 	 me = {name : username, id : data.clientId};
 
-		 		 	 //start polling
-		 		 	 //pollStart();
-
-		 		 	 //show join
+		 		 	 // Show "join" screen
 		 		 	 connectView.fadeOut( function() {
 		 		 	 	joinView.fadeIn();
 		 		 	 	joinView.find('#join_channel').focus();
@@ -185,7 +189,6 @@ var IMClient = function (mainElement) {
 		 		 	alert(data.err);
 		 		 }
 		 }, 'json');
-		//throw notImplementedError;
 	}
 
 
@@ -198,15 +201,15 @@ var IMClient = function (mainElement) {
 			IdType: MESSAGE_ID_TYPE
 	});
 
-        //Called when msg is shown in msgDisplay
+	//Called when msg is shown in msgDisplay
 	var nodeDisplayedListener = function(node) {
 		var nvs = node.getNodeViewsInTreeView(channelView.msgBrowserView.treeView);
 		$(nvs).each(function(i,nv) {nv.area.addClass('node_displayed');});
 
-                //mark node as read
-                markNodeAsRead(node);
+		markNodeAsRead(node);
 	}
-	// Called when msg is removed from msgDisplay
+
+	// Called when msg disappears from msgDisplay
 	var nodeUndisplayedListener = function(node) {
 		var nvs = node.getNodeViewsInTreeView(channelView.msgBrowserView.treeView);
 		
@@ -221,174 +224,174 @@ var IMClient = function (mainElement) {
 	}
 
 	// Called when all messges are removed from message display
-        var allNodesUndisplayed = function(node) {
-            $('.node_displayed').removeClass('node_displayed');
-        }
+	var allNodesUndisplayed = function(node) {
+		$('.node_displayed').removeClass('node_displayed');
+	}
 
-        var clearMultiParentDisplay = function() {
-            channelView.multiParentDisplay.empty();
-        }
+	var clearMultiParentDisplay = function() {
+		channelView.multiParentDisplay.empty();
+	}
 
-	// WARNING: THIS IS THE MOST COMPLEX FUNCTION
+	// WARNING: THIS IS THE MOST COMPLEX FUNCTION.. and is about 150 lines of code long >-<
 	// It is essentially a helper function for selectMsgNode
 	// It updates the message display to set focus on the the provided node
 	var focusInMsgDisplay = function (node, multi) {
 		// note : for every msg displayed in msgDisplay, will apply node_displayed CSS class in msgBrowser
 		if (multi==undefined) multi=false;
 		displayTv = channelView.msgDisplayView.treeView;
-                var selection = channel.selection;
-                var mpDisp = channelView.multiParentDisplay;
+		var selection = channel.selection;
+		var mpDisp = channelView.multiParentDisplay;
 
-                if (!multi) {
-                    displayTv.clear();
-                    //clear multi-parent display
-                    clearMultiParentDisplay();
-                    //mark all nodes as undisplayed
-                    allNodesUndisplayed();
-                } else {
-                    // Handle case when node added to selection is less deep than currently least deep
-                    // node shown in the message display. 
-                    if (!node.hasAncestor(displayTv.rootNodeView.node)) {
+		if (!multi) {
+			displayTv.clear();
+			//clear multi-parent display
+			clearMultiParentDisplay();
+			//mark all nodes as undisplayed
+			allNodesUndisplayed();
+		} else {
+			// Handle case when node added to selection is less deep than currently least deep
+			// node shown in the message display. 
+			if (!node.hasAncestor(displayTv.rootNodeView.node)) {
 
-                        var selnv = focusInMsgDisplay(node, false); // this redraws the msgDisplay tree with correct root 
-                        selnv.multiselect();
-                        for (var j=0;j<selection.length;j++) {
-                            if (selection[j] != node)
-                                focusInMsgDisplay(selection[j], true).multiselect();
-                        }
-                        return selnv;
-                    }
-                }
+				var selnv = focusInMsgDisplay(node, false); // this redraws the msgDisplay tree with correct root 
+				selnv.multiselect();
+				for (var j=0;j<selection.length;j++) {
+					if (selection[j] != node)
+						focusInMsgDisplay(selection[j], true).multiselect();
+				}
+				return selnv;
+			}
+		}
 
 		var root = node.tree.root;
 
-                // Find first ancestor of selected node with least depth which has multiple parents (or no parents)
+		// Find first ancestor of selected node with least depth which has multiple parents (or no parents)
 		// We call this "topNode"
 		// This will be the new root of the MsgDisplay
-                var topNode = null;
-                if (!multi) {
-                    var mindepthSelNode = node;
-                    for (var i=0;i<selection.length;i++) {
-                        selNode = selection[i];
-                        if (!selNode.hasAncestor(mindepthSelNode))
-                            mindepthSelNode = selNode;
-                    }
-                    topNode = mindepthSelNode;
-                    while (topNode != root) {
-                        if (topNode.parents.length > 1) {
-                                //draw the multiple parents is multi-parent display area
-                            var parents = topNode.parents;
-                            for (var i=0;i<parents.length;i++) {
-                                var p = parents[i];
-                                var nvCode = displayTv.nodeViewCode(p);
-                                nvCode.data('node', parents[i]);
+		var topNode = null;
+		if (!multi) {
+			var mindepthSelNode = node;
+			for (var i=0;i<selection.length;i++) {
+				selNode = selection[i];
+				if (!selNode.hasAncestor(mindepthSelNode))
+					mindepthSelNode = selNode;
+			}
+			topNode = mindepthSelNode;
+			while (topNode != root) {
+				if (topNode.parents.length > 1) {
+						//draw the multiple parents is multi-parent display area
+					var parents = topNode.parents;
+					for (var i=0;i<parents.length;i++) {
+						var p = parents[i];
+						var nvCode = displayTv.nodeViewCode(p);
+						nvCode.data('node', parents[i]);
 
-                                //function executed when click on 'nodeView' in multi-parent display area
-                                nvCode.click(function(e) {
-                                    var node = $(this).data('node');
-                                    if (e.shiftKey) {
-                                         selectMsgNode(node, true);
-                                    } else {
-                                        selectMsgNode(node, false);
-                                    }
-                                });
-                                mpDisp.append(nvCode);
-                                markNodeAsRead(node);
-                                //blink the fake nodeview?
-                            }
-                            break;
-                        } else {
-                            topNode = topNode.parents[0];
-                        }
-                    }
-                }
+						//function executed when click on 'nodeView' in multi-parent display area
+						nvCode.click(function(e) {
+							var node = $(this).data('node');
+							if (e.shiftKey) {
+								 selectMsgNode(node, true);
+							} else {
+								selectMsgNode(node, false);
+							}
+						});
+						mpDisp.append(nvCode);
+						markNodeAsRead(node);
+						//blink the fake nodeview?
+					}
+					break;
+				} else {
+					topNode = topNode.parents[0];
+				}
+			}
+		}
 		
 		// This nested function is a helper for focusInMsgDisplay
 		// It recursively draws the parents of the node to be focused
-                function focusInMsgDisplayHelper(node) { // returns nodeView for this node, draws if neccessary
-                        if (node.parents == null || node.parents.length == 0) {
-                                if (displayTv.rootNodeView == null)
-                                    displayTv.drawRoot();
-                                if (node.value.read == false)
-                                    displayTv.rootNodeView.blink(DEQUEUE_BLINK_COLOR)
-                                nodeDisplayedListener(displayTv.rootNodeView.node);
+		function focusInMsgDisplayHelper(node) { // returns nodeView for this node, draws if neccessary
+				if (node.parents == null || node.parents.length == 0) {
+						if (displayTv.rootNodeView == null)
+							displayTv.drawRoot();
+						if (node.value.read == false)
+							displayTv.rootNodeView.blink(DEQUEUE_BLINK_COLOR)
+						nodeDisplayedListener(displayTv.rootNodeView.node);
 
-                                return displayTv.rootNodeView;
-                        }
-                        else if (node == topNode) {
-                            if (displayTv.rootNodeView == null || displayTv.rootNodeView.node != node)
-                                displayTv.drawAsRoot(node);
-                            if (node.value.read == false)
-                                    displayTv.rootNodeView.blink(DEQUEUE_BLINK_COLOR)
-                            return displayTv.rootNodeView;
-                        } else {
-                                //all parents are shown:
-                                for (var i=0;i<node.parents.length;i++) {
-                                    var parentNode = node.parents[i];
+						return displayTv.rootNodeView;
+				}
+				else if (node == topNode) {
+					if (displayTv.rootNodeView == null || displayTv.rootNodeView.node != node)
+						displayTv.drawAsRoot(node);
+					if (node.value.read == false)
+							displayTv.rootNodeView.blink(DEQUEUE_BLINK_COLOR)
+					return displayTv.rootNodeView;
+				} else {
+						//all parents are shown:
+						for (var i=0;i<node.parents.length;i++) {
+							var parentNode = node.parents[i];
 
-                                    focusInMsgDisplayHelper(parentNode); //upwards recursive call
+							focusInMsgDisplayHelper(parentNode); //upwards recursive call
 
-                                    for (var j=0;j<parentNode.nodeViews.length;j++) {
-                                        var pnv = parentNode.nodeViews[j];
-                                        if (pnv.treeView == displayTv) {
-                                            var drawnNv = pnv.findChild(node);
-                                            if (drawnNv == null) {
-                                                //node is not drawn, draw it
-                                                drawnNv = displayTv.createNodeView(node);
-                                                pnv.drawChild(drawnNv);
+							for (var j=0;j<parentNode.nodeViews.length;j++) {
+								var pnv = parentNode.nodeViews[j];
+								if (pnv.treeView == displayTv) {
+									var drawnNv = pnv.findChild(node);
+									if (drawnNv == null) {
+										//node is not drawn, draw it
+										drawnNv = displayTv.createNodeView(node);
+										pnv.drawChild(drawnNv);
 
-                                                if (node.value.read == false)
-                                                    drawnNv.blink(DEQUEUE_BLINK_COLOR)
-                                                nodeDisplayedListener(node);
-                                            }
-                                            if (node.value.read==false) {
-                                                markNodeAsRead(node);
+										if (node.value.read == false)
+											drawnNv.blink(DEQUEUE_BLINK_COLOR)
+										nodeDisplayedListener(node);
+									}
+									if (node.value.read==false) {
+										markNodeAsRead(node);
 
-                                            }
-                                        }
-                                    }
-                                }
+									}
+								}
+							}
+						}
 
-                                return drawnNv;
-                        }
+						return drawnNv;
+				}
 
-                }
-                var selnv = focusInMsgDisplayHelper(node);
+		}
 
+		var selnv = focusInMsgDisplayHelper(node);
 
-                if (!multi) {
-                        if (node.parents.length < 2) { // don't draw sibs/children of multiparent messages
-                            if (DRAW_FOCUS_SIBLINGS) { // draw siblings of the message
-                                    var parent = selnv.parent();
-                                    if (parent != undefined) {
-                                        selnv.remove();
-                                        parent.drawChildren();
-                                        selnv = parent.findChild(node);
+		if (!multi) {
+				if (node.parents.length < 2) { // don't draw sibs/children of multiparent messages
+					if (DRAW_FOCUS_SIBLINGS) { // draw siblings of the message
+							var parent = selnv.parent();
+							if (parent != undefined) {
+								selnv.remove();
+								parent.drawChildren();
+								selnv = parent.findChild(node);
 
-                                        var sibs = parent.children();
-                                        for (var i=0;i<sibs.length;i++) {
-                                                var s = sibs[i];
-                                                if (s.node.value.read == false)
-                                                    s.blink(DEQUEUE_BLINK_COLOR)
-                                                nodeDisplayedListener(s.node);
-                                        }
-                                    }
-                            }
-                            if (DRAW_FOCUS_CHILDREN) { // draw children of the message
-                                    selnv.drawChildren();
-                                    var children = selnv.children();
-                                    for (var i=0;i<children.length;i++) {
-                                            c = children[i];
-                                            if (c.node.value.read == false)
-                                                    c.blink(DEQUEUE_BLINK_COLOR)
-                                            nodeDisplayedListener(c.node);
-                                    }
-                            }
-                    }
-                }
+								var sibs = parent.children();
+								for (var i=0;i<sibs.length;i++) {
+										var s = sibs[i];
+										if (s.node.value.read == false)
+											s.blink(DEQUEUE_BLINK_COLOR)
+										nodeDisplayedListener(s.node);
+								}
+							}
+					}
+					if (DRAW_FOCUS_CHILDREN) { // draw children of the message
+							selnv.drawChildren();
+							var children = selnv.children();
+							for (var i=0;i<children.length;i++) {
+									c = children[i];
+									if (c.node.value.read == false)
+											c.blink(DEQUEUE_BLINK_COLOR)
+									nodeDisplayedListener(c.node);
+							}
+					}
+			}
+		}
 		// Set scroll position of message Display so that the node is in view
-                channelView.msgDisplayView.treeView.area.scrollTop(selnv.area.offset().top-50);
-                channelView.msgDisplayView.treeView.area.scrollLeft(selnv.area.offset().left-50);
+		channelView.msgDisplayView.treeView.area.scrollTop(selnv.area.offset().top-50);
+		channelView.msgDisplayView.treeView.area.scrollLeft(selnv.area.offset().left-50);
 
 		return selnv;
 	}
@@ -432,19 +435,20 @@ var IMClient = function (mainElement) {
 
 		showMsgComposer();
 		$('#response_text').focus();
-
-
 	}
 
-	var tvBrowserEventsParams = {
-			select: function (cb,nv) {
-					var node = nv.node;
-					var multi = nv.treeView.selection.length > 1;
-					selectMsgNode(node, multi);
 
-					cb();
+	
+	// ----- BEGIN : PARAMETERS FOR INITIALIZING TREEVIEWS FOR MESSAGE BROWSER AND DISPLAY ----- 
+	var tvBrowserEventsParams = { 
+		select: function (cb,nv) { // called when a node is selected in the tree
+				var node = nv.node;
+				var multi = nv.treeView.selection.length > 1;
+				selectMsgNode(node, multi);
+
+				cb();
 			},
-			unselect: function (cb,nv) {
+			unselect: function (cb,nv) { // called when a node is removed from selection in the tree
 				var sel = channel.selection, nvs = nv.node.nodeViews;
 				var index = sel.indexOf(node);
 				if (index != -1)
@@ -459,78 +463,86 @@ var IMClient = function (mainElement) {
 					hideMsgComposer();
 				cb();
 			},
+			// Called when a node is clicked
 			click: function (cb,nb) {$('#response_text').focus();cb();}
 	} ;
 	var tvBrowserEvents = new treeViewSettingsEvents(tvBrowserEventsParams);
-	var browserMappingFunction =  function() {
-				this.getMapping = function(node) {
-					return {
-						id : node.id,
-						text : (function () {
-								var ret = '';
-								var clientId = node.value.clientId;
-								if (clientId == me.id) {
-									//name = me.name;
-									name = 'me';
-									ret += '<div><a class="msgbrowser_text" title="'+node.value.text+'"><span style="font-weight:bold;color:green">'+name+'</span>';//+'</div>';
-								}
-								else {
-									var client = channel.clients[node.value.clientId];
-									var name;
-									if (client == undefined)
-										name = '???';
-									else
-										name = client.name;
-									ret += '<div><a class="msgbrowser_text" title="'+node.value.text+'"><span style="font-weight:bold;">'+name+'</span>';//+'</div>';
-								}
-								ret += ': ';
-								var msg_text = node.value.text;
-								if (msg_text.length>20)
-									msg_text = node.value.text.substr(0,20) + '...'; //max 20 chars of msg to show in disp
-								ret += msg_text;
-								ret += '</a></div>';
-								return ret;
-						})()
-					}
-				}
-			}
-	var displayMappingFunction =  function() {
-				this.getMapping = function(node) {
-					return {
-						id : node.id,
-						text : (function () {
-								var ret = '';
-								var clientId = node.value.clientId;
-								if (clientId == me.id) {
-									//name = me.name;
-									name = 'me';
-									ret += '<div style="font-size:0.8em;font-weight:bold;color:green">'+name+'</div>';
-								}
-								else {
-									var client = channel.clients[node.value.clientId];
-									if (client == undefined)
-										client = channel.offline[node.value.clientId];
-									var name;
-									if (client == undefined)
-										name = '???';
-									else
-										name = client.name;
-									ret += '<div style="font-size:0.8em;font-weight:bold">'+name+'</div>';
-								}
 
-								ret += node.value.text;
-								return ret;
-						})()
-					}
-				}
+	var browserMappingFunction =  function() {
+		// Maps how node data is mapped to its visual display for the message browser
+		this.getMapping = function(node) {
+			return {
+				id : node.id,
+				text : (function () {
+						var ret = '';
+						var clientId = node.value.clientId;
+						if (clientId == me.id) {
+							//name = me.name;
+							name = 'me';
+							ret += '<div><a class="msgbrowser_text" title="'+node.value.text+'"><span style="font-weight:bold;color:green">'+name+'</span>';//+'</div>';
+						}
+						else {
+							var client = channel.clients[node.value.clientId];
+							var name;
+							if (client == undefined)
+								name = '???';
+							else
+								name = client.name;
+							ret += '<div><a class="msgbrowser_text" title="'+node.value.text+'"><span style="font-weight:bold;">'+name+'</span>';//+'</div>';
+						}
+						ret += ': ';
+						var msg_text = node.value.text;
+						if (msg_text.length>20)
+							msg_text = node.value.text.substr(0,20) + '...'; //max 20 chars of msg to show in disp
+						ret += msg_text;
+						ret += '</a></div>';
+						return ret;
+				})()
 			}
+		}
+	}
+
+	var displayMappingFunction =  function() {
+		// Maps how node data is mapped to its visual display for the message display
+		this.getMapping = function(node) {
+			return {
+				id : node.id,
+				text : (function () {
+						var ret = '';
+						var clientId = node.value.clientId;
+						if (clientId == me.id) {
+							//name = me.name;
+							name = 'me';
+							ret += '<div style="font-size:0.8em;font-weight:bold;color:green">'+name+'</div>';
+						}
+						else {
+							var client = channel.clients[node.value.clientId];
+							if (client == undefined)
+								client = channel.offline[node.value.clientId];
+							var name;
+							if (client == undefined)
+								name = '???';
+							else
+								name = client.name;
+							ret += '<div style="font-size:0.8em;font-weight:bold">'+name+'</div>';
+						}
+
+						ret += node.value.text;
+						return ret;
+				})()
+			}
+		}
+	}
+
 	var msgBrowserTvSettings = new treeViewSettings( {
 			mappingFunction: browserMappingFunction,
 			events: tvBrowserEvents
 	});
+
 	var tvDispEventsParams = {
-			select: function (cb,nv) {
-                                var multi = nv.treeView.selection.length > 1;
+			select: function (cb,nv) { 
+				 // Called when a node is selected in message display
+                var multi = nv.treeView.selection.length > 1;
 				selectMsgNode(nv.node, multi);
 
 				// Sync display and browser: unselect any nodes in the browser that
@@ -550,7 +562,7 @@ var IMClient = function (mainElement) {
 				cb();
 			},
 			unselect: function (cb,nv) {
-
+				// Called when a node is removed from selection in message display
 				var nvs = nv.node.nodeViews;
 				for (var i =0; i<nvs.length;i++) {
 					currNv = nvs[i];
@@ -568,68 +580,72 @@ var IMClient = function (mainElement) {
 			events:tvDispEvents,
 			style:'md'
 	});
-        multiparentControl = new nodeViewControl( {
-                 pos: CONTROL_POS_LEFT,
-                 css: 'tv_control_multiparent',
-                 onClick: function(nodeView) {
-                     var parentCount = nodeView.node.parents.length;
-                     alert("This message is a reponse to " + parentCount + "messages.");
-                 },
-                 isVisible: function(nodeView) {
-                    var node = nodeView.node;
-                    return node.parents.length > 1;
-                 },
-                 tooltip: function(nodeView) {
-                     var parentCount = nodeView.node.parents.length;
-                     return 'Reponse to ' + parentCount + ' messages';
-                 }
-        })
-        showallControl = new nodeViewControl( {
-                 pos: CONTROL_POS_OUTSIDE,
-                 css: 'tv_control_out_text',
-                 isVisible: function(nodeView) {
-                         var childNvs = nodeView.children();
-                         return childNvs.length != nodeView.node.children.length;
-                 },
-                 onClick: function(nodeView) {
-                         nodeView.expand();
+	multiparentControl = new nodeViewControl( {
+			 // Icon shown in node view when it represents a message with multiple parents
+			 pos: CONTROL_POS_LEFT,
+			 css: 'tv_control_multiparent',
+			 onClick: function(nodeView) {
+				 var parentCount = nodeView.node.parents.length;
+				 alert("This message is a reponse to " + parentCount + "messages.");
+			 },
+			 isVisible: function(nodeView) {
+				var node = nodeView.node;
+				return node.parents.length > 1;
+			 },
+			 tooltip: function(nodeView) {
+				 var parentCount = nodeView.node.parents.length;
+				 return 'Reponse to ' + parentCount + ' messages';
+			 }
+	})
 
-                         var children = nodeView.children();
-                         for (var n in children) {
-                            nodeUndisplayedListener(children[n].node);
-                            children[n].remove();
-                         }
-                         //nodeView.drawChildren();
-                         var childNodes = nodeView.node.children;
-                         for (n in childNodes) {
-                            var nv = nodeView.drawChild(nodeView.treeView.createNodeView(childNodes[n]));
-                            if (!childNodes[n].value.read) {
-                                markNodeViewUnread(nv);
-                                nv.blink(DEQUEUE_BLINK_COLOR);
-                            }
-                            nodeDisplayedListener( childNodes[n]);
+	showallControl = new nodeViewControl( {
+			 // Control shown in node view when it has unshown children (Message Display only)
+			 pos: CONTROL_POS_OUTSIDE,
+			 css: 'tv_control_out_text',
+			 isVisible: function(nodeView) {
+					 var childNvs = nodeView.children();
+					 return childNvs.length != nodeView.node.children.length;
+			 },
+			 onClick: function(nodeView) {
+					 nodeView.expand();
 
-                         }
-                 },
-                 text: function (nv) {
-                     var undrawnCount = nv.node.children.length - nv.children().length;
-                     return '+'+undrawnCount;
-                 },
-                 tooltip: function(nv) {
-                     var undrawnCount = nv.node.children.length - nv.children().length;
+					 var children = nodeView.children();
+					 for (var n in children) {
+						nodeUndisplayedListener(children[n].node);
+						children[n].remove();
+					 }
+					 //nodeView.drawChildren();
+					 var childNodes = nodeView.node.children;
+					 for (n in childNodes) {
+						var nv = nodeView.drawChild(nodeView.treeView.createNodeView(childNodes[n]));
+						if (!childNodes[n].value.read) {
+							markNodeViewUnread(nv);
+							nv.blink(DEQUEUE_BLINK_COLOR);
+						}
+						nodeDisplayedListener( childNodes[n]);
 
-                     if (undrawnCount==1) ret = 'Show '+undrawnCount+' more response';
-                     else ret = 'Show '+undrawnCount+' responses';
-                     return ret;
-                 }
+					 }
+			 },
+			 text: function (nv) {
+				 var undrawnCount = nv.node.children.length - nv.children().length;
+				 return '+'+undrawnCount;
+			 },
+			 tooltip: function(nv) {
+				 var undrawnCount = nv.node.children.length - nv.children().length;
 
-        })
-        msgDispTvSettings.addControl('multiparent', multiparentControl);
-        msgBrowserTvSettings.addControl('multiparent', multiparentControl);
-        msgDispTvSettings.addControl('showall', showallControl);
+				 if (undrawnCount==1) ret = 'Show '+undrawnCount+' more response';
+				 else ret = 'Show '+undrawnCount+' responses';
+				 return ret;
+			 }
+
+	})
+	msgDispTvSettings.addControl('multiparent', multiparentControl);
+	msgBrowserTvSettings.addControl('multiparent', multiparentControl);
+	msgDispTvSettings.addControl('showall', showallControl);
+	// ----- END : PARAMETERS FOR INITIALIZING TREEVIEWS FOR MESSAGE BROWSER AND DISPLAY -----
 
 	this.join = function () {
-                var self = this;
+        var self = this;
 		var channelname = joinView.find('#join_channel').val();
 		// make query to send to server
 		query = {clientId: me.id,
@@ -638,130 +654,150 @@ var IMClient = function (mainElement) {
 		//hide the join prompt window
 		joinView.fadeOut( function () {
 
-		loadingMsg.show();
+			loadingMsg.show();
 
-		// Send request to server
-		$.post('/join', query, function(data) {
+			// Send request to server
+			$.post('/join', query, function(data) {
 
-			if (data.success == 'y') { 	// request was successfully handled
-				
-				pollStop();
-				channel = {
-					   name: data.channelName,
-					   clients : {},
-					   offline : {}, //clients who have participated but who are not currently in the channel
-					   tree : new tree(msgTreeSettings),
-					   selection : [],
-					   getClientById: 
-						function(id) {
-							var client = this.clients[id];
-							if (client != undefined) return client;
-							client = this.offline[id];
-							if (client != undefined) return client;
-							return null;
-						}
-					};
-				msgQueueView = channelView.msgQueueView;
-				selectMessageInQueueCallback = function(node) { 
-					// show a message in the main view when it is selected in the queue
-					selectMessageNode(node); 
-				}
-				channel.msgQueue = new MessageQueue( 
-						msgQueueView, 
-						channel,
-					   	selectMessageInQueueCallback); 
-
-				channelView.msgBrowserView.treeView =
-					new treeView(channel.tree, channelView.msgBrowserView, msgBrowserTvSettings );
-				channelView.msgDisplayView.treeView =
-						new treeView(channel.tree, channelView.msgDisplayView, msgDispTvSettings );
-
-				//var root =  channel.tree.createNode('root'); channel.tree.setRoot(root);
-				channelView.statusBarView.children('#status_info').html('name: <span style="color:white">' + me.name + '</span> channel: <span style="color:white">' + channel.name + '</span>');
-				//load history
-				getHistory(function (msgs) {
-					if (msgs==null) {} //some error
-					else {
-						$('#debug').append('<p>reading history</p>');
-						var myLastMsgIndex = 0;
-						//2 passes through messages
-						//1. find which msg user had last seen (to know which to mark as read)
-						//2. build message tree
-						for (var i =0; i< msgs.length; i++) {
-							var msg = msgs[i];
-							if (msg.type == 'leave' && msg.clientId==me.id) {
-								myLastMsgIndex = i;
+				if (data.success == 'y') { 	// request was successfully handled
+					
+					pollStop();
+					// Initialize the channel object
+					channel = {
+						   name: data.channelName,
+						   clients : {},
+						   offline : {}, //clients who have participated but who are not currently in the channel
+						   tree : new tree(msgTreeSettings),
+						   selection : [],
+						   getClientById: 
+							function(id) {
+								var client = this.clients[id];
+								if (client != undefined) return client;
+								client = this.offline[id];
+								if (client != undefined) return client;
+								return null;
 							}
-						}
-						for (var i =0; i< myLastMsgIndex; i++) {
-							var msg = msgs[i];
-							//$('#debug').append('<p>retrieved msg: '+JSON.stringify(msgs[i])+'</p>');
-							if (msg.type == 'msg') {
-								messageInsertNode(msg, true ); //not readMessage, which makes it blink
-							} else {
-								readMessage(msgs[i]);
+						};
 
-							}
-						}
-
-						// New messages will start being put in the MessageQueue
-						channel.msgQueue.enable(); 
-
-						for (; i< msgs.length; i++) {
-							var msg = msgs[i];
-							//$('#debug').append('<p>retrieved msg: '+JSON.stringify(msgs[i])+'</p>');
-							if (msg.type == 'msg') {
-								messageInsertNode(msg, false ); //not readMessage, which makes it blink
-							} else {
-								readMessage(msgs[i]);
-
-							}
-						}
-
-						$('#debug').append('<p>finished reading history</p>');
+					// Create the message queue
+					msgQueueView = channelView.msgQueueView;
+					selectMessageInQueueCallback = function(node) { 
+						// show a message in the main view when it is selected in the queue
+						selectMessageNode(node); 
 					}
+					channel.msgQueue = new MessageQueue( 
+							msgQueueView, 
+							channel,
+							selectMessageInQueueCallback); 
 
-					for (c in channel.clients)
-					    channel.offline[c] = channel.clients[c]
-					channel.clients = {}; //clients was filled while reading messages in getHistory
+					// Create tree views for message browser and message display
+					channelView.msgBrowserView.treeView =
+						new treeView(channel.tree, channelView.msgBrowserView, msgBrowserTvSettings );
+					channelView.msgDisplayView.treeView =
+							new treeView(channel.tree, channelView.msgDisplayView, msgDispTvSettings );
 
-					//load clients
-					getClients(function (clients) {
-						if (clients == null) {} //some error
+					// Initialize status bar
+					channelView.statusBarView.children('#status_info').html(
+							'name: <span style="color:white">' + me.name + '</span> channel: <span style="color:white">' + channel.name + '</span>');
+
+					// load entire message history of the channel (inclued join, leave, and close messages)
+					getHistory(function (msgs) {
+						if (msgs==null) {} //some error
 						else {
-							var chanClients = channel.clients;
-							for (var i = 0; i<clients.length; i++) {
-								var client = clients[i];
-								if (client.id == me.id) continue;
-								chanClients[client.id] = client;
+							$('#debug').append('<p>reading history</p>');
+							var myLastMsgIndex = 0;
+							
+							// The following code does two passes through the messages
+							// 1. First: find which msg user had last seen (to know which to mark as read)
+							// We define last seen as the last message that came in while the user was joined
+							// to the channel
+							for (var i =0; i< msgs.length; i++) {
+								var msg = msgs[i];
+								if (msg.type == 'leave' && msg.clientId==me.id) {
+									myLastMsgIndex = i;
+								}
 							}
-							channelView.clientsDisplayView.refresh();
+							
+							// 2. Now, build the message tree
+							// 2a. Add all message up til last seen are added to tree but not the queue
+							for (var i =0; i< myLastMsgIndex; i++) {
+								var msg = msgs[i];
+								//$('#debug').append('<p>retrieved msg: '+JSON.stringify(msgs[i])+'</p>');
+								if (msg.type == 'msg') {
+									messageInsertNode(msg, true ); //not readMessage, which makes it blink
+								} else {
+									readMessage(msgs[i]);
+
+								}
+							}
+
+							// 2b. Enable the queue so ew messages will start being put in the MessageQueue
+							channel.msgQueue.enable(); 
+							for (; i< msgs.length; i++) {
+								var msg = msgs[i];
+								//$('#debug').append('<p>retrieved msg: '+JSON.stringify(msgs[i])+'</p>');
+								if (msg.type == 'msg') {
+									messageInsertNode(msg, false ); //not readMessage, which makes it blink
+								} else {
+									readMessage(msgs[i]);
+
+								}
+							}
+							// Done reading message history
+
+							$('#debug').append('<p>finished reading history</p>');
 						}
+						
+						// Due to the logic of readMessage(), clients were added as online during
+						// reading the message history. We need to mark them as offline, and
+						// clear the online clients list
+						for (c in channel.clients)
+							channel.offline[c] = channel.clients[c]
+						channel.clients = {}; 
 
-						loadingMsg.hide( function() {
-							pollStart();
-							channel.msgQueue.enable();
+						// Now, request server for online clients
+						getClients(function (clients) {
+							if (clients == null) {
+								// TODO NEED TO HANDLE THIS PROPERLY
+								// THIS CAN CAUSE LOGIN SCREEN TO FREEZE
+							} 
+							else {
+								var chanClients = channel.clients;
+								for (var i = 0; i<clients.length; i++) {
+									var client = clients[i];
+									if (client.id == me.id) continue;
+									chanClients[client.id] = client;
+								}
+								channelView.clientsDisplayView.refresh();
+							}
+						
+							// Loading channel has finished, we can start polling
+							// and show the main interface!
+							loadingMsg.hide( function() {
+								pollStart();
+								channel.msgQueue.enable();
 
-							channelView.fadeIn(function() {
-								showMsgComposer();
-								resizeChannelView();
-							});
-							self.selectRoot();
-							//DONE
-						 });
+								channelView.fadeIn(function() {
+									showMsgComposer();
+									resizeChannelView();
+								});
+								self.selectRoot();
+								//DONE
+							 });
+						});
+
+
 					});
 
 
-				});
-
-
-			} else {
-				alert(data.err);
-			}
-		}, 'json');
+				} else {
+					alert(data.err);
+				}
+			}, 'json');
 		});
 
 	}
+
 	function selectMessageNode(node) {
 		browserTv = channelView.msgBrowserView.treeView;
 		browserTv.unselectAll();
@@ -779,6 +815,8 @@ var IMClient = function (mainElement) {
 		}
 		markNodeAsRead(node);
 	}
+
+	// Go to next unread message in the MessageQueue
 	this.nextMessage = function() {
 		if (channel == null) return;
 
@@ -788,6 +826,9 @@ var IMClient = function (mainElement) {
 
 		}
 	}
+
+
+	// Currently Unused
 	this.prevMessage = function() {
 		if (channel == null) return;
 		var currNode = channel.msgQueue.currNode();
@@ -813,12 +854,15 @@ var IMClient = function (mainElement) {
 			}
 		}
 	}
+
 	this.leave = function () {
+		// User has requested to leave the channel
 		if (channel == null) return;
 
 		query = {clientId: me.id,
 			requestId: requestIdFactory.getId()};
 
+		// send request to server
 		$.post('/leave', query, function (data) {
 				if (data.success == 'y') {
 					channelView.fadeOut( function() {
@@ -834,9 +878,10 @@ var IMClient = function (mainElement) {
 					document.location='/'; //reload page
 				}
 		});
-		//throw notImplementedError;
 	}
+
 	this.disconnect = function () {
+		// User has requested to disconnect from chat server
 		if (me == null) return false;
 
 		var query = {requestId: requestIdFactory.getId(),
@@ -857,17 +902,23 @@ var IMClient = function (mainElement) {
 		 		 	alert(data.err);
 		 		 }
 		 }, 'json');
-                 return true;
+         
+		return true;
 	}
+
+
 	this.send = function () {
+		// User wants to send a message
+		
+		// Get message text
 		var msgtext = channelView.msgComposerView.find('#response_text').val();
 		channelView.msgComposerView.find('#response_text').val('');
 
-                //check if the message composer is empty
+        //check if the message composer is empty
 		if (msgtext == '') {
-                    this.nextMessage();
+                    this.nextMessage(); // Go to next message
                     return false;
-                }
+        }
 
 		//get parent ids
 		var parentIds = [];
@@ -884,8 +935,10 @@ var IMClient = function (mainElement) {
 			text:msgtext,
 			'parentIds':parentIds
 		}
+		// Send request to server
 		$.post('/send', query, function (data) {
 				if (data.success == 'y') {
+					// Show the new message in the main interface
 					newNode = messageReceive({
 							id:data.msgId,
 							clientId:me.id,
@@ -893,8 +946,9 @@ var IMClient = function (mainElement) {
 							'parentIds':parentIds,
 							timestamp: (new Date).getTime()
 					});
-
 					focusInMsgDisplay(newNode, true);
+
+					// Make the new node blink in the main interface
 					for (var j = 0; j < newNode.nodeViews.length; j++)
 						newNode.nodeViews[j].blink('#ffffd4');
 
@@ -904,8 +958,8 @@ var IMClient = function (mainElement) {
 						browserNodes[i].unselect();
 					}
 
-                                        //select the new node...
-                                        selectMsgNode(newNode, false);
+					//select the new node...
+					selectMsgNode(newNode, false);
 				} else {
 					alert(data.err);
 				}
@@ -913,27 +967,29 @@ var IMClient = function (mainElement) {
 
 		return true;
 	}
-        this.help = function () {
-            $('#shader')
-                //.css({'width':'100%','height':'100%'})
-                .unbind('click')
-                .fadeIn(function(){
-                    $('#shader').click(function() {
-                        $('#help').hide();
-                        $(this).fadeOut()
-                    });
-                    $('#help').css({'left':window.innerWidth/2-250}).show();
 
-                });
+	this.help = function () {
+		// Display the help window
+		$('#shader')
+			.unbind('click')
+			.fadeIn(function(){
+				$('#shader').click(function() {
+					$('#help').hide();
+					$(this).fadeOut()
+				});
+				$('#help').css({'left':window.innerWidth/2-250}).show();
+			});
+	}
 
-        }
-        this.selectRoot = function() {
-          channelView.msgBrowserView.treeView.rootNodeView.select();
-          $('#response_text').focus();
-        }
+	this.selectRoot = function() {
+		  // Shows all top level message
+		  channelView.msgBrowserView.treeView.rootNodeView.select();
+		  $('#response_text').focus();
+	}
 
 	var getHistory = function (cb) {
-		//cb = function(msgs), msgs is null on error
+		// Query the server to get entire message history for the current channel
+		// cb = function(msgs) {...} , msgs is null on error
 		var msgs = null;
 		if (channel == null) cb(msgs);
 
@@ -948,8 +1004,10 @@ var IMClient = function (mainElement) {
 		 		 }
 		});
 	}
+
 	var getClients = function (cb) {
-		//cb = function(clients), clients is null on error
+		// Query the server to get clients currently online
+		// cb = function(clients), clients is null on error
 		var clients = null;
 		if (channel == null) cb(clients);
 
@@ -967,24 +1025,27 @@ var IMClient = function (mainElement) {
 
 
 	var clearChannelView = function () {
-		//clear treeview
+		// Clear contents of the channel view UI (including message display,
+		// message browser, and message queue)
 		channelView.msgBrowserView.treeView.area.html('');
 		delete channelView.msgBrowserView.treeView;
-		//channelView.msgDisplayView.treeView.area.html('');
-                channelView.msgDisplayView.find('ul').remove(); // removes the treeView list element
-                clearMultiParentDisplay();
+		channelView.msgDisplayView.find('ul').remove(); // removes the treeView list element
+		clearMultiParentDisplay();
 		delete channelView.msgDisplayView.treeView;
 		channel.msgQueue.close();
 	}
 
 	var messageInsertNode = function(msg, markAsRead) {
+		// Insert message into the main message tree
+		// arguments:
+		// msg: the message to insert (received from server or sent by user)
+		// markAsRead: if false, the message will be placed into the message queue
 		if (markAsRead == undefined) markAsRead = false;
-
-		//insert message into tree
 		var tree = channel.tree;
 
-
+		// Create the node object
 		var newNode = tree.createNode(msg);
+		// Insert into tree
 		if (tree.root == null)
 			tree.setRoot(newNode);
 		else
@@ -1012,7 +1073,7 @@ var IMClient = function (mainElement) {
 		return newNode;
 	}
 
-	//"EVENTS"?
+	// "Events" for when users join or leave the channel
 	var clientJoin = function (client) {
 		delete channel.offline[client.id];
 		channel.clients[client.id] = client;
@@ -1024,17 +1085,15 @@ var IMClient = function (mainElement) {
 		channelView.clientsDisplayView.refresh();
 	}
 
+	// "Event" for when a message (only text messages, not join or leave) is received from the server
 	var messageReceive = function(msg) {
 		//returns the node corresponding to the message
 		var newNode = messageInsertNode(msg, msg.clientId == me.id ? true : false);
 		for (var j = 0; j < newNode.nodeViews.length; j++)
 			newNode.nodeViews[j].blink('#ffffd4');
 
-
-
 		return newNode;
 	}
-	//END EVENTS
 
 
 	var readMessage = function (msg) {
@@ -1063,9 +1122,11 @@ var IMClient = function (mainElement) {
 				messageReceive(message);
 				break;
 			case 'system':
+				// Currently there are no system messages
 				break;
 		}
 	}
+
 	var readPoll = function (data) {
 		if (data.success != 'y') {
 			alert(data.err);
@@ -1129,6 +1190,7 @@ function clearDebug() {
 
 var im;
 $(document).ready( function () {
+		// Initializing of the client application
 		im=new IMClient($('#im_main'));
 		$('#response_text').keypress(function(e){
 		   if (enterKey(e)) {
@@ -1136,8 +1198,8 @@ $(document).ready( function () {
 			return false;
 		   }
 		 });
-                $('#newConversation').click( function(e) {
-                   im.selectRoot(); 
-                });
+		$('#newConversation').click( function(e) {
+		   im.selectRoot(); 
+		});
 });
 
