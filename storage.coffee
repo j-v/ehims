@@ -2,8 +2,6 @@ mongoose = require 'mongoose'
 models = require './models'
 messages = require './messages'
 globals = require './globals'
-#{ObjectID, Db, Server} = require 'mongodb'
-#mongo = require 'mongodb'
 
 LOCAL_DB_URL = 'mongodb://localhost/ehims'
 
@@ -25,7 +23,9 @@ console.log 'connected to database'
 models.initModels mongoose
 
 exports.storeMessage = (message, channelId, callback = (err, msgId) -> ) ->
-  #TODO validate channel?
+  # Save a message to the database
+  # callback is called with an ID given to the message as second 
+  # argument on success, or an error as first argument on failure
 
   model = undefined
   switch message.type
@@ -56,7 +56,6 @@ exports.storeMessage = (message, channelId, callback = (err, msgId) -> ) ->
     else
       return false # TODO raise exception?
 
-  #TODO : set date based on message.timestamp?
   model.save()
   callback null, model._id
 

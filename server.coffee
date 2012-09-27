@@ -185,9 +185,6 @@ app.post '/join', (req, res) ->
 
 
 
-app.get '/who', (req, res) ->
-  throw globals.notImplementedError
-
 # handle /clients request
 app.get '/clients', (req, res) -> # get active users in a channel
   # parse request parameters

@@ -1,3 +1,5 @@
+# Define the models used by Mongoose to store data into the MongoDB database
+
 exports.MESSAGE_TYPE_MESSAGE = 0
 exports.MESSAGE_TYPE_JOIN = 1
 exports.MESSAGE_TYPE_LEAVE = 2
